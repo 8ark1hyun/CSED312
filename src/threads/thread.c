@@ -615,7 +615,7 @@ void thread_awake(int64_t ticks)
   { 
     struct thread *current_thread = list_entry(next_elem, struct thread, elem); // next elem이 가리키는 list요소에 해당하는 thread의 주소가 current thread로 들어감
     
-    if (current_thread->wakeup <= ticks) // thread가 꺠어날 시간이 되었는지 확인
+    if (current_thread->alarmTick <= ticks) // thread가 꺠어날 시간이 되었는지 확인
     {
       next_elem = list_remove(next_elem); // list에서 해당 thread를 제거하고 다음 element로 이동
       thread_unblock(current_thread); // thread상채를 block에서 ready로 전환
