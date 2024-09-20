@@ -588,3 +588,21 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+
+// alarm clock - pintos 1
+void thread_sleep(int64_t ticks)
+{
+  struct thread *current = thread_current(); // 현재 실행중인 thread를 가져옴
+  enum intr_level old_level = intr_disable(); // 현재 interupt를 저장
+
+  current -> alarmTick = ticks; // thread가 잠에서 깨어나야할 tick을 저장
+
+  if(current != idle_thread) // idle thread 는 재우면 안됨
+  {
+      list_push_back(&sleep_list, &current->elem); // sleep list에 넣어줌
+      thread_block(); // thread를 block 상태로 전환
+      intr_set_level(old_level); // interupt를 복원해줌
+  }
+}
