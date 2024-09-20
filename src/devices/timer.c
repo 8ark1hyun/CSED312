@@ -89,11 +89,17 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
+  // original code
+  // int64_t start = timer_ticks ();
 
-  ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  // ASSERT (intr_get_level () == INTR_ON);
+  // while (timer_elapsed (start) < ticks) 
+  //   thread_yield ();
+
+  // alarm clock - pintos 1
+  int64_t start = timer_ticks (); // 현재의 tick값
+  thread_sleep (start + ticks); // 현재 + 얼마나 더 잠? = 일어날시간
+
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
