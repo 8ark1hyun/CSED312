@@ -178,6 +178,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+
+  // alarm clock - pintos 1
+  thread_awake(ticks);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
