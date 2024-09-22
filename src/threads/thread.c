@@ -662,7 +662,9 @@ void thread_awake(int64_t ticks)
 
 
 // Priority Scheduling - pintos 1 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2) // thread간의 우선순위를 비교
+
+// thread간의 우선순위를 비교
+bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2) 
 {
   return list_entry(temp_1, struct thread, elem) -> priority > list_entry(temp_2, struct thread, elem) -> priority;
 }
@@ -681,7 +683,9 @@ void check_priority_switch(void) // ready_list의 가장 앞에 있는 thread와
   }
 }
 
-void apply_priority_donation (void)
+
+// 우선순위 기부 실시
+void apply_priority_donation (void) 
 {  
   struct thread *current_thread = thread_current();
 
@@ -704,7 +708,8 @@ void apply_priority_donation (void)
 }
 
 
-void clear_donations_for_lock(struct lock *lock) // donations list에서 thread를 지운다
+// donations list에서 thread를 지운다
+void clear_donations_for_lock(struct lock *lock) 
 {
   struct list_elem *elem; // donations list를 순회할 때 사용할 element
   struct thread *current_thread = thread_current(); // 현재 실행 중인 thread
@@ -720,3 +725,30 @@ void clear_donations_for_lock(struct lock *lock) // donations list에서 thread�
     }
   }
 }
+
+
+// 우선순위를 재계산
+void recalculate_priority(void)
+{
+  struct thread *current_thread = thread_current(); // 현재 스레드를 가져옴
+
+  // 스레드의 우선순위를 기본 우선순위 (init_priority)로 초기화
+  current_thread->priority = current_thread->initial_priority;
+
+  // donations 리스트가 비어있지 않은 경우 우선순위를 재조정
+  if (!list_empty(&current_thread->donations)) 
+  {
+    // donations 리스트를 우선순위에 따라 정렬
+    list_sort(&current_thread->donations, compare_priority, NULL);
+
+    // donations 리스트에서 가장 우선순위가 높은 thread를 가져옴
+    struct thread *highest_priority_thread = list_entry(list_front(&current_thread->donations), struct thread, donation_elem);
+    
+    // 가장 높은 우선순위가 현재 thread 스레드의 기본 우선순위보다 높으면 우선순위를 조정
+    if (highest_priority_thread->priority > current_thread->priority) 
+    {
+      current_thread->priority = highest_priority_thread->priority;
+    }
+  }
+}
+
