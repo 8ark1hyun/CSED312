@@ -365,6 +365,7 @@ thread_set_priority (int new_priority)
   thread_current ()->priority = new_priority;
 
   // Priority Scheduling - pintos 1
+  recalculate_priority();
   check_priority_switch();
 }
 
@@ -669,7 +670,16 @@ bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2)
   return list_entry(temp_1, struct thread, elem) -> priority > list_entry(temp_2, struct thread, elem) -> priority;
 }
 
-void check_priority_switch(void) // ready_list의 가장 앞에 있는 thread와 현재 실행중인 thread를 비교해서 전자가 더 priority가 높으면 실행
+
+// donation list 우선순위를 비교
+bool compare_donate_priority(struct list_elem *temp_1, struct list_elem *temp_2) 
+{
+  return list_entry(temp_1, struct thread, donation_elem) -> priority > list_entry(temp_2, struct thread, donation_elem) -> priority;
+}
+
+
+// ready_list의 가장 앞에 있는 thread와 현재 실행중인 thread를 비교해서 전자가 더 priority가 높으면 실행
+void check_priority_switch(void) 
 {
   if (!list_empty(&ready_list)) // ready_list가 안비어있음
   {
@@ -715,13 +725,13 @@ void clear_donations_for_lock(struct lock *lock)
   struct thread *current_thread = thread_current(); // 현재 실행 중인 thread
 
   // donations 리스트의 첫 번째부터 마지막까지 순회
-  for (elem = list_begin(&current_thread->donations); elem != list_end(&current_thread->donations); elem = list_next(elem)) 
+  for (elem = list_begin(&current_thread -> donations); elem != list_end(&current_thread -> donations); elem = list_next(elem)) 
   {
     struct thread *donating_thread = list_entry(elem, struct thread, donation_elem); // donations 리스트에 있는 thread를 가져옴
     
-    if (donating_thread->wait_on_lock == lock) // 해당 스레드가 현재 해제하려는 lock을 기다리고 있는지 확인
+    if (donating_thread -> waiting_lock == lock) // 해당 스레드가 현재 해제하려는 lock을 기다리고 있는지 확인
     { 
-      list_remove(&donating_thread->donation_elem); // donations 리스트에서 해당 스레드 제거
+      list_remove(&donating_thread -> donation_elem); // donations 리스트에서 해당 스레드 제거
     }
   }
 }
@@ -733,13 +743,13 @@ void recalculate_priority(void)
   struct thread *current_thread = thread_current(); // 현재 스레드를 가져옴
 
   // 스레드의 우선순위를 기본 우선순위 (init_priority)로 초기화
-  current_thread->priority = current_thread->initial_priority;
+  current_thread -> priority = current_thread -> original_priority;
 
   // donations 리스트가 비어있지 않은 경우 우선순위를 재조정
   if (!list_empty(&current_thread->donations)) 
   {
     // donations 리스트를 우선순위에 따라 정렬
-    list_sort(&current_thread->donations, compare_priority, NULL);
+    list_sort(&current_thread -> donations, compare_donate_priority, NULL);
 
     // donations 리스트에서 가장 우선순위가 높은 thread를 가져옴
     struct thread *highest_priority_thread = list_entry(list_front(&current_thread->donations), struct thread, donation_elem);

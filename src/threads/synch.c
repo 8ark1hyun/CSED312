@@ -201,7 +201,7 @@ lock_acquire (struct lock *lock)
   {
     thread_current() -> waiting_lock = lock; // 현재 thread가 기다리는 lock을 저장
     // lock을 보유하고 있는 thread의 donation list에 현재 thread를 추가하며 우선순위 정렬
-    list_insert_ordered(&lock -> holder -> donations, &thread_current() -> donation_elem, compare_priority, NULL);
+    list_insert_ordered(&lock -> holder -> donations, &thread_current() -> donation_elem, compare_donate_priority, NULL);
     apply_priority_donation(); // 우선순위 기부 실행
   }
 
