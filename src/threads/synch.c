@@ -196,11 +196,13 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  if(lock -> holder)
+  // priority scheduling - pintos 1
+  if(lock -> holder) // lock을 보유한 thread가 있으면
   {
-    thread_current() -> waiting_lock = lock;
+    thread_current() -> waiting_lock = lock; // 현재 thread가 기다리는 lock을 저장
+    // lock을 보유하고 있는 thread의 donation list에 현재 thread를 추가하며 우선순위 정렬
     list_insert_ordered(&lock -> holder -> donations, &thread_current() -> donation_elem, compare_priority, NULL);
-    donate_priority();
+    apply_priority_donation(); // 우선순위 기부 실행
   }
 
   sema_down (&lock->semaphore);

@@ -680,3 +680,25 @@ void check_priority_switch(void) // ready_list의 가장 앞에 있는 thread와
       }
   }
 }
+
+void apply_priority_donation (void)
+{  
+  struct thread *current_thread = thread_current();
+
+  // 최대 8번의 우선순위 기부를 시도
+  for (int i = 0; i < 8; i++)
+  {
+    // 스레드가 더 이상 기다리고 있는 락이 없으면 종료
+    if (current_thread -> waiting_lock == NULL) 
+    {
+      break;
+    }
+
+    // 락을 소유한 스레드에게 우선순위 기부
+    struct thread *lock_holder = current_thread -> waiting_lock -> holder;
+    lock_holder -> priority = current_thread -> priority;
+        
+    // 우선순위를 기부 받은 스레드를 현재 스레드로 업데이트
+    current_thread = lock_holder;
+  }
+}
