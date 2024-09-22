@@ -608,7 +608,7 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
 
-// alarm clock - pintos 1
+// alarm clock - pintos 1 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void thread_sleep(int64_t ticks)
 {
   struct thread *current = thread_current(); // 현재 실행중인 thread를 가져옴
@@ -644,8 +644,27 @@ void thread_awake(int64_t ticks)
   }
 }
 
-// Priority Scheduling - pintos 1
-bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2)
+
+
+
+
+
+// Priority Scheduling - pintos 1 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2) // thread간의 우선순위를 비교
 {
   return list_entry(temp_1, struct thread, elem) -> priority > list_entry(temp_2, struct thread, elem) -> priority;
+}
+
+void check_priority_switch(void) // ready_list의 가장 앞에 있는 thread와 현재 실행중인 thread를 비교해서 전자가 더 priority가 높으면 실행
+{
+  if (!list_empty(&ready_list)) // ready_list가 안비어있음
+  {
+      struct thread *current = thread_current();
+      struct thread *highest_priority_thread = list_entry(list_front(&ready_list), struct thread, elem);
+
+      if (current->priority < highest_priority_thread->priority) // 현재 thread의 우선순위가 ready list의 첫번째 thread보다 낮을때 두개를 switch
+      {
+          thread_yield();
+      }
+  }
 }
