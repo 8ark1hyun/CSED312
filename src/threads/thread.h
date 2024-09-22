@@ -145,4 +145,7 @@ int thread_get_load_avg (void);
 void thread_sleep(int64_t ticks);
 void thread_awake(int64_t ticks);
 
+// priority scheduling - pintos 1
+bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2);
+void check_priority_switch(void);
 #endif /* threads/thread.h */
