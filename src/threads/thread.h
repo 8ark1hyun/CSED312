@@ -87,11 +87,17 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
+    int priority;                       /* 현재의 Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
    // alarm clock - pintos 1
    int64_t alarmTick;
+
+   // priority scheduling - pintos 1
+   int original_priority; // 맨처음원래 priority
+   struct lock *waiting_lock; // thread가 현재 받을라고 대기하고 있는 lock
+   struct list donations; // 자신에게 priority를 준 thread 리스트
+   struct list_elem donation_elem; // donation list의 element
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
