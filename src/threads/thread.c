@@ -207,6 +207,10 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  // Priority Scheduling - pintos 1
+  check_priority_switch();
+  // end
+
   return tid;
 }
 
@@ -359,6 +363,9 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+
+  // Priority Scheduling - pintos 1
+  check_priority_switch();
 }
 
 /* Returns the current thread's priority. */
