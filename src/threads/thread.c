@@ -243,8 +243,16 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
-  t->status = THREAD_READY;
+
+  // original code
+  // list_push_back (&ready_list, &t->elem);
+  // t->status = THREAD_READY;
+
+  // Priority Scheduling
+  list_insert_ordered(&ready_list, &t -> elem, compare_priority, NULL); // ready list에 넣어줄때 정렬
+  t -> status = THREAD_READY; // thread를 ready 상태로 변경
+  // end
+
   intr_set_level (old_level);
 }
 
