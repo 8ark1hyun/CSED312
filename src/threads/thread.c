@@ -626,3 +626,9 @@ void thread_awake(int64_t ticks)
     }
   }
 }
+
+// Priority Scheduling - pintos 1
+bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2)
+{
+  return list_entry(temp_1, struct thread, elem) -> priority > list_entry(temp_2, struct thread, elem) -> priority;
+}
