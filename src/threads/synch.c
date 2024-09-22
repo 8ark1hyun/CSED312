@@ -240,6 +240,10 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  // priority scheduling - pintos 1
+  clear_donations_for_lock(lock); // 현재 thread에 대해 우선순위 기부 정리함
+  recalculate_priority(); // 우선순위 재설정 & 기부된 우선순위 반영
+
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
