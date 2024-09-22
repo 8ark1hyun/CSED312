@@ -155,5 +155,6 @@ void thread_awake(int64_t ticks);
 bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2);
 void check_priority_switch(void);
 void apply_prioirity_donation (void);
+void clear_donations_for_lock(struct lock *lock);
 
 #endif /* threads/thread.h */

@@ -702,3 +702,21 @@ void apply_priority_donation (void)
     current_thread = lock_holder;
   }
 }
+
+
+void clear_donations_for_lock(struct lock *lock) // donations list에서 thread를 지운다
+{
+  struct list_elem *elem; // donations list를 순회할 때 사용할 element
+  struct thread *current_thread = thread_current(); // 현재 실행 중인 thread
+
+  // donations 리스트의 첫 번째부터 마지막까지 순회
+  for (elem = list_begin(&current_thread->donations); elem != list_end(&current_thread->donations); elem = list_next(elem)) 
+  {
+    struct thread *donating_thread = list_entry(elem, struct thread, donation_elem); // donations 리스트에 있는 thread를 가져옴
+    
+    if (donating_thread->wait_on_lock == lock) // 해당 스레드가 현재 해제하려는 lock을 기다리고 있는지 확인
+    { 
+      list_remove(&donating_thread->donation_elem); // donations 리스트에서 해당 스레드 제거
+    }
+  }
+}
