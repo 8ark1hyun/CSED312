@@ -74,7 +74,7 @@ sema_down (struct semaphore *sema)
       // priority scheduling - pintos 1
       list_insert_ordered(&sema -> waiters, &thread_current() -> elem, compare_priority, NULL);
       // end
-      
+
       thread_block ();
     }
   sema->value--;
@@ -119,10 +119,21 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)) 
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+  if (!list_empty (&sema->waiters))
+  {
+    // priority scheduling - pintos 1
+    list_sort(&sema -> waiters, compare_priority, NULL);
+    // end
+
+    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+  } 
+
   sema->value++;
+  
+  // priority scheduling - pintos 1
+  check_priority_switch();
+  // end
+
   intr_set_level (old_level);
 }
 
