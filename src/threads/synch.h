@@ -51,7 +51,8 @@ void cond_broadcast (struct condition *, struct lock *);
 // priority scheduling - pintos 1
 
 // sema -> waiters list에서 가장 높은 priority를 가진 thread의 priority를 반환
-int sema_priority (struct semaphore *temp); 
+int sema_highest_priority (struct semaphore *temp); 
+bool sema_compare_priority (struct list_elem *temp_1, struct list_elem *temp_2);
 
 // end
 
