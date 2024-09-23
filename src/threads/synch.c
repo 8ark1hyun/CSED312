@@ -382,7 +382,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
 // priority scheduling - pintos 1
 
-// sema -> waiters list에서 가장 높은 priority를 가진 thread의 priority를 반환
+/*// sema -> waiters list에서 가장 높은 priority를 가진 thread의 priority를 반환
 int sema_highest_priority (struct semaphore *temp)
 {
   return &list_entry(list_begin(&temp -> waiters), struct thread, elem) -> priority;
@@ -393,6 +393,17 @@ int sema_highest_priority (struct semaphore *temp)
 bool sema_compare_priority (struct list_elem *temp_1, struct list_elem *temp_2)
 {
   return sema_highest_priority(&list_entry(temp_1, struct semaphore_elem, elem) -> semaphore) > sema_highest_priority(&list_entry(temp_2, struct semaphore_elem, elem) -> semaphore);
+}*/
+
+bool sema_compare_priority (const struct list_elem *temp1, const struct list_elem *temp2)
+{
+	struct semaphore_elem *temp1_sema = list_entry (temp1, struct semaphore_elem, elem);
+	struct semaphore_elem *temp2_sema = list_entry (temp2, struct semaphore_elem, elem);
+
+	struct list *waiter_temp1_sema = &(temp1_sema->semaphore.waiters);
+	struct list *waiter_temp2_sema = &(temp2_sema->semaphore.waiters);
+
+	return list_entry (list_begin (waiter_temp1_sema), struct thread, elem)->priority > list_entry (list_begin (waiter_temp2_sema), struct thread, elem)->priority;
 }
 
 // end
