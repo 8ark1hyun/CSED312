@@ -366,3 +366,20 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
 }
+
+// priority scheduling - pintos 1
+
+// sema -> waiters list에서 가장 높은 priority를 가진 thread의 priority를 반환
+int sema_highest_priority (struct semaphore *temp)
+{
+  return list_entry(list_begin(&sema -> waiters), struct thread, elem) -> priority;
+}
+
+
+// 두개의 sema -> waiters list에서 가장 높은 priority들끼리 비교
+int sema_compare_priority (struct list_elem *temp_1, struct list_elem *temp_2)
+{
+  return sema_highest_priority(list_entry(temp_1, struct semaphore_elem, elem) -> semaphore) > sema_highest_priority(list_entry(temp_2, struct semaphore_elem, elem) -> semaphore);
+}
+
+// end

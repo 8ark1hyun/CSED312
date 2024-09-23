@@ -48,4 +48,11 @@ void cond_broadcast (struct condition *, struct lock *);
    reference guide for more information.*/
 #define barrier() asm volatile ("" : : : "memory")
 
+// priority scheduling - pintos 1
+
+// sema -> waiters list에서 가장 높은 priority를 가진 thread의 priority를 반환
+int sema_priority (struct semaphore *temp); 
+
+// end
+
 #endif /* threads/synch.h */
