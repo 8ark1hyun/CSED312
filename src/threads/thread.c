@@ -843,4 +843,18 @@ void mlfqs_increment_cpu_time(void) {
 }
 
 
+// 모든 스레드의 recent_cpu 값을 재계산 -> all_list에 있는 모든 스레드를 순회하면서 각 스레드의 CPU 사용량을 갱신
+void mlfqs_update_all_cpu_usages(void) {
+    // all_list에 있는 모든 스레드를 순회하면서 recent_cpu 값을 갱신
+    for (struct list_elem *element = list_begin(&all_list); element != list_end(&all_list); element = list_next(element)) {
+        mlfqs_update_cpu_time(list_entry(element, struct thread, allelem));  // 각 스레드의 recent_cpu 값을 계산
+    }
+}
 
+//모든 스레드의 priority 재계산 -> all_list에 있는 모든 스레드를 순회하면서 각 스레드의 우선순위를 재조정
+void mlfqs_recalculate_all_priorities(void) {
+    // all_list에 있는 모든 스레드를 순회하면서 우선순위를 재조정
+    for (struct list_elem *element = list_begin(&all_list); element != list_end(&all_list); element = list_next(element)) {
+        mlfqs_update_priority(list_entry(element, struct thread, allelem););  // 각 스레드의 priority 값을 재조정
+    }
+}

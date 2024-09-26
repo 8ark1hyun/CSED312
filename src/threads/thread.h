@@ -168,5 +168,7 @@ void mlfqs_update_priority(struct thread *current_thread);
 void mlfqs_update_cpu_time(struct thread *current_thread);
 void mlfqs_update_load_average(void);
 void mlfqs_increment_cpu_time(void);
+void mlfqs_update_all_cpu_usages(void);
+
 
 #endif /* threads/thread.h */
