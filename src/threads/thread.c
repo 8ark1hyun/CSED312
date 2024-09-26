@@ -857,6 +857,7 @@ void mlfqs_update_all_cpu_usages(void) {
     }
 }
 
+
 //모든 스레드의 priority 재계산 -> all_list에 있는 모든 스레드를 순회하면서 각 스레드의 우선순위를 재조정
 void mlfqs_recalculate_all_priorities(void) {
     // all_list에 있는 모든 스레드를 순회하면서 우선순위를 재조정
@@ -864,3 +865,18 @@ void mlfqs_recalculate_all_priorities(void) {
         mlfqs_update_priority(list_entry(element, struct thread, allelem););  // 각 스레드의 priority 값을 재조정
     }
 }
+
+
+// thread의 nice를 반환
+int thread_get_nice (void) {
+    enum intr_level previous_interrupt_state = intr_disable(); // interrupt를 비활성화하여 안전하게 값에 접근 
+
+    int current_nice_value = thread_current()->nice;          
+
+    intr_set_level(previous_interrupt_state); //interrupt를 이전값으로 복원          
+    
+    return current_nice_value;       
+}
+void thread_set_nice (int);
+int thread_get_recent_cpu (void);
+int thread_get_load_avg (void);
