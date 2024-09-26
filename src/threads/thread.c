@@ -503,6 +503,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t -> original_priority = priority;
   t -> waiting_lock = NULL;
   list_init(&t -> donations);
+
+  // advanced scheduler - pintos 1
+  t->nice_level = 0;
+  t->cpu_usage = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
