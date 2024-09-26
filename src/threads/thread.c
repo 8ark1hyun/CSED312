@@ -877,6 +877,16 @@ int thread_get_nice (void) {
     
     return current_nice_value;       
 }
-void thread_set_nice (int);
+
+// 현재 thread의 nice값 새로 설정
+void thread_set_nice(int nice UNUSED) {
+  enum intr_level previous_interrupt_state = intr_disable();
+  thread_current() -> nice = nice;
+  mlfqs_update_priority(thread_current());
+  check_priority_switch();
+  intr_set_level(previous_interrupt_state);
+}
+
+//
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
