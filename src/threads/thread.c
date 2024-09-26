@@ -68,7 +68,7 @@ bool thread_mlfqs;
 
 
 // advanced schedular - pintos 1
-int global_load_avg; // 시스템의 평균 부하 
+int load_avg; // 시스템의 평균 부하 
 
 
 static void kernel_thread (thread_func *, void *aux);
@@ -126,7 +126,7 @@ thread_start (void)
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
   // advanced scheduler - pintos 1
-  global_load_avg = 0;
+  load_avg = 0;
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -523,8 +523,8 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t -> donations);
 
   // advanced scheduler - pintos 1
-  t->nice_level = 0;
-  t->cpu_usage = 0;
+  t->nice = 0;
+  t->recent_cpu = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -793,15 +793,17 @@ void mlfqs_update_priority(struct thread *current_thread)
       return;
     }
 
-    int new_priority = PRI_MAX - (current_thread -> cpu_usage / 4) - (current_thread -> nice_level * 2);
+    current_thread->priority = convert_to_int (add_int_fixed_point (divide_int_fixed_point (current_thread->recent_cpu, -4), PRI_MAX - current_thread->nice * 2));
 
-    if (new_priority < PRI_MIN) {
-        current_thread->priority = PRI_MIN;
-    } else if (new_priority > PRI_MAX) {
-        current_thread->priority = PRI_MAX;
-    } else {
-        current_thread->priority = new_priority;
-    }
+    // int new_priority = PRI_MAX - (current_thread -> recent_cpu / 4) - (current_thread -> nice * 2);
+
+    // if (new_priority < PRI_MIN) {
+    //     current_thread->priority = PRI_MIN;
+    // } else if (new_priority > PRI_MAX) {
+    //     current_thread->priority = PRI_MAX;
+    // } else {
+    //     current_thread->priority = new_priority;
+    // }
 }
 
 // thread가 최근에 사용한 CPU시간을 계산
@@ -812,10 +814,12 @@ void mlfqs_update_cpu_time(struct thread *current_thread)
       return;
     }
 
-    int load_factor = multiply_int_fixed_point(global_load_avg, 2);  // 고정 소수점 연산
-    current_thread -> cpu_usage = add_int_fixed_point(
-        multiply_fixed_point(divide_fixed_point(load_factor, add_int_fixed_point(load_factor, 1)), current_thread->cpu_usage), current_thread->nice_level
-    );
+    current_thread->recent_cpu = add_int_fixed_point (multiply_fixed_point (divide_fixed_point (multiply_int_fixed_point (load_avg, 2), add_int_fixed_point (multiply_int_fixed_point (load_avg, 2), 1)), current_thread->recent_cpu), current_thread->nice);
+
+    // int load_factor = multiply_int_fixed_point(load_avg, 2);  // 고정 소수점 연산
+    // current_thread -> recent_cpu = add_int_fixed_point(
+    //     multiply_fixed_point(divide_fixed_point(load_factor, add_int_fixed_point(load_factor, 1)), current_thread->recent_cpu), current_thread->nice
+    // );
 }
 
 // 시스탬의 평균 부하 계산
@@ -828,10 +832,10 @@ void mlfqs_update_load_average(void) {
         active_threads = list_size(&ready_list) + 1;
     }
 
-    global_load_avg = add_fixed_point(
+    load_avg = add_fixed_point(
         multiply_fixed_point(
             divide_fixed_point(convert_to_fixed_point(59), convert_to_fixed_point(60)), 
-            global_load_avg
+            load_avg
         ), 
         multiply_int_fixed_point(
             divide_fixed_point(convert_to_fixed_point(1), convert_to_fixed_point(60)), 
@@ -840,10 +844,10 @@ void mlfqs_update_load_average(void) {
     );
 }
 
-// 현재 실행 중인 thread의 cpu_usage를 tick마다 1씩 증가시킴
+// 현재 실행 중인 thread의 recent_cpu를 tick마다 1씩 증가시킴
 void mlfqs_increment_cpu_time(void) {
     if (thread_current() != idle_thread) {  // idle_thread는 제외
-        thread_current()->cpu_usage = add_int_fixed_point(thread_current()->cpu_usage, 1); // 1 증가
+        thread_current()->recent_cpu = add_int_fixed_point(thread_current()->recent_cpu, 1); // 1 증가
     }
 }
 
@@ -870,7 +874,7 @@ void mlfqs_recalculate_all_priorities(void) {
 int thread_get_nice (void) {
     enum intr_level previous_interrupt_state = intr_disable(); // interrupt를 비활성화하여 안전하게 값에 접근 
 
-    int current_nice_value = thread_current() -> nice_level;          
+    int current_nice_value = thread_current() -> nice;          
 
     intr_set_level(previous_interrupt_state); //interrupt를 이전값으로 복원          
     
@@ -880,7 +884,7 @@ int thread_get_nice (void) {
 // 현재 thread의 nice값 새로 설정
 void thread_set_nice(int nice UNUSED) {
   enum intr_level previous_interrupt_state = intr_disable();
-  thread_current() -> nice_level = nice;
+  thread_current() -> nice = nice;
   mlfqs_update_priority(thread_current());
   check_priority_switch();
   intr_set_level(previous_interrupt_state);
@@ -889,14 +893,14 @@ void thread_set_nice(int nice UNUSED) {
 //
 int thread_get_recent_cpu (void) {
   enum intr_level old_level = intr_disable ();
-  int recent_cpu= convert_to_int_nearest(multiply_int_fixed_point(thread_current() -> cpu_usage, 100));
+  int recent_cpu = convert_to_int_nearest(multiply_int_fixed_point(thread_current() -> recent_cpu, 100));
   intr_set_level (old_level);
   return recent_cpu;
 }
 
 int thread_get_load_avg (void){
   enum intr_level old_level = intr_disable ();
-  int load_avg_value = convert_to_int_nearest(multiply_int_fixed_point (global_load_avg, 100));
+  int load_avg_value = convert_to_int_nearest(multiply_int_fixed_point (load_avg, 100));
   intr_set_level (old_level);
   return load_avg_value;
 }

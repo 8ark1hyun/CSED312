@@ -276,7 +276,7 @@ lock_release (struct lock *lock)
   clear_donations_for_lock(lock); // 현재 thread에 대해 우선순위 기부 정리함
   recalculate_priority(); // 우선순위 재설정 & 기부된 우선순위 반영
 
-  lock->holder = NULL;
+  // lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
 

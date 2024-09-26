@@ -183,7 +183,8 @@ timer_interrupt (struct intr_frame *args UNUSED)
   if (thread_mlfqs){
     mlfqs_increment_cpu_time();
     if (ticks % 4 == 0){
-      mlfqs_update_all_cpu_usages();
+      // mlfqs_update_all_cpu_usages();
+      mlfqs_recalculate_all_priorities();
       if (ticks % TIMER_FREQ == 0){
         mlfqs_update_all_cpu_usages();
         mlfqs_update_load_average();

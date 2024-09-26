@@ -100,8 +100,8 @@ struct thread
    struct list_elem donation_elem; // donation list의 element
 
    // advanced scheduler - pintos 1
-   int nice_level; // thread의 nice 값
-   int cpu_usage; // thread의 최근 cpu 사용량
+   int nice; // thread의 nice 값
+   int recent_cpu; // thread의 최근 cpu 사용량
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -159,13 +159,13 @@ void thread_awake(int64_t ticks);
 bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2);
 bool compare_donate_priority(struct list_elem *temp_1, struct list_elem *temp_2);
 void check_priority_switch(void);
-void apply_prioirity_donation (void);
+void apply_priority_donation (void);
 void clear_donations_for_lock(struct lock *lock);
 void recalculate_priority(void);
 
 // advanced schedular - pintos 1
-void mlfqs_update_priority(struct thread *current_thread);
-void mlfqs_update_cpu_time(struct thread *current_thread);
+void mlfqs_update_priority(struct thread *current_thread); // calculate prioirity
+void mlfqs_update_cpu_time(struct thread *current_thread); // calculate recent cpu
 void mlfqs_update_load_average(void);
 void mlfqs_increment_cpu_time(void);
 void mlfqs_update_all_cpu_usages(void);
