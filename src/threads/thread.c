@@ -835,4 +835,12 @@ void mlfqs_update_load_average(void) {
     );
 }
 
+// 현재 실행 중인 thread의 cpu_usage를 tick마다 1씩 증가시킴
+void mlfqs_increment_cpu_time(void) {
+    if (thread_current() != idle_thread) {  // idle_thread는 제외
+        thread_current()->cpu_usage = add_int_fixed_point(thread_current()->cpu_usage, 1); // 1 증가
+    }
+}
+
+
 
