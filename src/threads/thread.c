@@ -374,6 +374,12 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  // advanced scheduler - pintos 1
+  if (thread_mlfqs){
+    return;
+  }
+  // end
+
   thread_current ()->original_priority = new_priority;
 
   // Priority Scheduling - pintos 1
