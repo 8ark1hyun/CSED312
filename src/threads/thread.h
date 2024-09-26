@@ -165,5 +165,6 @@ void recalculate_priority(void);
 
 // advanced schedular - pintos 1
 void mlfqs_update_priority(struct thread *current_thread);
+void mlfqs_update_cpu_time(struct thread *current_thread);
 
 #endif /* threads/thread.h */

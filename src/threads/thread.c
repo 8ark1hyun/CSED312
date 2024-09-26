@@ -125,6 +125,9 @@ thread_start (void)
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
+  // advanced scheduler - pintos 1
+  global_load_avg = 0;
+
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
@@ -773,5 +776,40 @@ void recalculate_priority(void)
       current_thread->priority = highest_priority_thread->priority;
     }
   }
+}
+
+// advanced scheduler - pintos 1 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// thread의 우선순위 계산
+void mlfqs_update_priority(struct thread *current_thread) 
+{
+    if (current_thread == idle_thread)
+    {
+      return;
+    }
+
+    int new_priority = PRI_MAX - (current_thread->cpu_time / 4) - (current_thread->nice_level * 2);
+
+    if (new_priority < PRI_MIN) {
+        current_thread->priority = PRI_MIN;
+    } else if (new_priority > PRI_MAX) {
+        current_thread->priority = PRI_MAX;
+    } else {
+        current_thread->priority = new_priority;
+    }
+}
+
+// thread가 최근에 사용한 CPU시간을 계산
+void mlfqs_update_cpu_time(struct thread *current_thread) 
+{
+    if (current_thread == idle_thread)
+    {
+      return;
+    }
+
+    int load_factor = multiply_int_fixed_point(system_load_avg, 2);  // 고정 소수점 연산
+    current_thread->cpu_time = add_int_fixed_point(
+        multiply_fixed_point(divide_fixed_point(load_factor, add_int_fixed_point(load_factor, 1)), current_thread->cpu_time),
+        current_thread->nice_level
+    );
 }
 
