@@ -11,6 +11,10 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+
+// advanced scheduler - pintos 1
+#include "cal_fixed_point.h"  // 고정 소수점 연산 함수 포함
+
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
