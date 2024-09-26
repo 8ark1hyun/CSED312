@@ -163,4 +163,7 @@ void apply_prioirity_donation (void);
 void clear_donations_for_lock(struct lock *lock);
 void recalculate_priority(void);
 
+// advanced schedular - pintos 1
+void mlfqs_update_priority(struct thread *current_thread);
+
 #endif /* threads/thread.h */
