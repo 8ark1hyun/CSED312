@@ -13,7 +13,7 @@
 #include "threads/vaddr.h"
 
 // advanced scheduler - pintos 1
-#include "cal_fixed_point.h"  // 고정 소수점 연산 함수 포함
+#include "/root/pintos/src/threads/cal_fixed_point.h"  // 고정 소수점 연산 함수 포함
 
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -395,36 +395,36 @@ thread_get_priority (void)
 }
 
 /* Sets the current thread's nice value to NICE. */
-void
-thread_set_nice (int nice UNUSED) 
-{
-  /* Not yet implemented. */
-}
+// void
+// thread_set_nice (int nice UNUSED) 
+// {
+//   /* Not yet implemented. */
+// }
 
 /* Returns the current thread's nice value. */
-int
-thread_get_nice (void) 
-{
-  /* Not yet implemented. */
-  return 0;
-}
+// int
+// thread_get_nice (void) 
+// {
+//   /* Not yet implemented. */
+//   return 0;
+// }
 
 /* Returns 100 times the system load average. */
-int
-thread_get_load_avg (void) 
-{
-  /* Not yet implemented. */
-  return 0;
-}
+// int
+// thread_get_load_avg (void) 
+// {
+//   /* Not yet implemented. */
+//   return 0;
+// }
 
 /* Returns 100 times the current thread's recent_cpu value. */
-int
-thread_get_recent_cpu (void) 
-{
-  /* Not yet implemented. */
-  return 0;
-}
-
+// int
+// thread_get_recent_cpu (void) 
+// {
+//   /* Not yet implemented. */
+//   return 0;
+// }
+// 
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
@@ -793,7 +793,7 @@ void mlfqs_update_priority(struct thread *current_thread)
       return;
     }
 
-    int new_priority = PRI_MAX - (current_thread->cpu_time / 4) - (current_thread->nice_level * 2);
+    int new_priority = PRI_MAX - (current_thread -> cpu_usage / 4) - (current_thread -> nice_level * 2);
 
     if (new_priority < PRI_MIN) {
         current_thread->priority = PRI_MIN;
@@ -812,10 +812,9 @@ void mlfqs_update_cpu_time(struct thread *current_thread)
       return;
     }
 
-    int load_factor = multiply_int_fixed_point(system_load_avg, 2);  // 고정 소수점 연산
-    current_thread->cpu_time = add_int_fixed_point(
-        multiply_fixed_point(divide_fixed_point(load_factor, add_int_fixed_point(load_factor, 1)), current_thread->cpu_time),
-        current_thread->nice_level
+    int load_factor = multiply_int_fixed_point(global_load_avg, 2);  // 고정 소수점 연산
+    current_thread -> cpu_usage = add_int_fixed_point(
+        multiply_fixed_point(divide_fixed_point(load_factor, add_int_fixed_point(load_factor, 1)), current_thread->cpu_usage), current_thread->nice_level
     );
 }
 
@@ -829,10 +828,10 @@ void mlfqs_update_load_average(void) {
         active_threads = list_size(&ready_list) + 1;
     }
 
-    system_load_avg = add_fixed_point(
+    global_load_avg = add_fixed_point(
         multiply_fixed_point(
             divide_fixed_point(convert_to_fixed_point(59), convert_to_fixed_point(60)), 
-            system_load_avg
+            global_load_avg
         ), 
         multiply_int_fixed_point(
             divide_fixed_point(convert_to_fixed_point(1), convert_to_fixed_point(60)), 
@@ -862,7 +861,7 @@ void mlfqs_update_all_cpu_usages(void) {
 void mlfqs_recalculate_all_priorities(void) {
     // all_list에 있는 모든 스레드를 순회하면서 우선순위를 재조정
     for (struct list_elem *element = list_begin(&all_list); element != list_end(&all_list); element = list_next(element)) {
-        mlfqs_update_priority(list_entry(element, struct thread, allelem););  // 각 스레드의 priority 값을 재조정
+        mlfqs_update_priority(list_entry(element, struct thread, allelem));  // 각 스레드의 priority 값을 재조정
     }
 }
 
@@ -871,7 +870,7 @@ void mlfqs_recalculate_all_priorities(void) {
 int thread_get_nice (void) {
     enum intr_level previous_interrupt_state = intr_disable(); // interrupt를 비활성화하여 안전하게 값에 접근 
 
-    int current_nice_value = thread_current()->nice;          
+    int current_nice_value = thread_current() -> nice_level;          
 
     intr_set_level(previous_interrupt_state); //interrupt를 이전값으로 복원          
     
@@ -881,12 +880,88 @@ int thread_get_nice (void) {
 // 현재 thread의 nice값 새로 설정
 void thread_set_nice(int nice UNUSED) {
   enum intr_level previous_interrupt_state = intr_disable();
-  thread_current() -> nice = nice;
+  thread_current() -> nice_level = nice;
   mlfqs_update_priority(thread_current());
   check_priority_switch();
   intr_set_level(previous_interrupt_state);
 }
 
 //
-int thread_get_recent_cpu (void);
-int thread_get_load_avg (void);
+int thread_get_recent_cpu (void) {
+  enum intr_level old_level = intr_disable ();
+  int recent_cpu= convert_to_int_nearest(multiply_int_fixed_point(thread_current() -> cpu_usage, 100));
+  intr_set_level (old_level);
+  return recent_cpu;
+}
+
+int thread_get_load_avg (void){
+  enum intr_level old_level = intr_disable ();
+  int load_avg_value = convert_to_int_nearest(multiply_int_fixed_point (global_load_avg, 100));
+  intr_set_level (old_level);
+  return load_avg_value;
+}
+
+
+//-----------------------------------//
+// fixed point 연산 모음
+// 새로 파일 만들면 make 어쩌구가 인식을 못함
+// 그래서
+// thread.c에 그냥 추가함
+//-----------------------------------//
+/* 정수를 고정 소수점으로 변환 */
+int convert_to_fixed_point(int n) {
+    return n * FIXED_POINT_SHIFT;
+}
+
+/* 고정 소수점을 정수로 변환 (소수점 이하 내림) */
+int convert_to_int(int x) {
+    return x / FIXED_POINT_SHIFT;
+}
+
+/* 고정 소수점을 정수로 변환 (반올림) */
+int convert_to_int_nearest(int x) {
+    if (x >= 0) 
+        return (x + FIXED_POINT_SHIFT / 2) / FIXED_POINT_SHIFT;
+    else 
+        return (x - FIXED_POINT_SHIFT / 2) / FIXED_POINT_SHIFT;
+}
+
+/* 두 고정 소수점 값을 더함 */
+int add_fixed_point(int x, int y) {
+    return x + y;
+}
+
+/* 두 고정 소수점 값을 뺌 */
+int subtract_fixed_point(int x, int y) {
+    return x - y;
+}
+
+/* 고정 소수점에 정수를 더함 */
+int add_int_fixed_point(int x, int n) {
+    return x + n * FIXED_POINT_SHIFT;
+}
+
+/* 고정 소수점에서 정수를 뺌 */
+int subtract_int_fixed_point(int x, int n) {
+    return x - n * FIXED_POINT_SHIFT;
+}
+
+/* 두 고정 소수점 값을 곱함 */
+int multiply_fixed_point(int x, int y) {
+    return ((int64_t)x) * y / FIXED_POINT_SHIFT;
+}
+
+/* 고정 소수점에 정수를 곱함 */
+int multiply_int_fixed_point(int x, int n) {
+    return x * n;
+}
+
+/* 두 고정 소수점 값을 나눔 */
+int divide_fixed_point(int x, int y) {
+    return ((int64_t)x) * FIXED_POINT_SHIFT / y;
+}
+
+/* 고정 소수점을 정수로 나눔 */
+int divide_int_fixed_point(int x, int n) {
+    return x / n;
+}

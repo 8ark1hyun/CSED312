@@ -1,4 +1,4 @@
-#include "cal_fixed_point.h"
+#include "/root/pintos/src/threads/cal_fixed_point.h"
 
 /* 정수를 고정 소수점으로 변환 */
 int convert_to_fixed_point(int n) {
