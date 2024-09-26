@@ -179,6 +179,18 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
 
+  // advanced scheduler - pintos 1
+  if (thread_mlfqs){
+    mlfqs_increment_cpu_time();
+    if (ticks % 4 == 0){
+      mlfqs_update_all_cpu_usages();
+      if (ticks % TIMER_FREQ == 0){
+        mlfqs_update_all_cpu_usages();
+        mlfqs_update_load_average();
+      }
+    }
+  }
+
   // alarm clock - pintos 1
   thread_awake(ticks);
 }
