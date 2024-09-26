@@ -813,3 +813,26 @@ void mlfqs_update_cpu_time(struct thread *current_thread)
     );
 }
 
+// 시스탬의 평균 부하 계산
+void mlfqs_update_load_average(void) {
+    int active_threads;
+
+    if (thread_current() == idle_thread) {
+        active_threads = list_size(&ready_list);
+    } else {
+        active_threads = list_size(&ready_list) + 1;
+    }
+
+    system_load_avg = add_fixed_point(
+        multiply_fixed_point(
+            divide_fixed_point(convert_to_fixed_point(59), convert_to_fixed_point(60)), 
+            system_load_avg
+        ), 
+        multiply_int_fixed_point(
+            divide_fixed_point(convert_to_fixed_point(1), convert_to_fixed_point(60)), 
+            active_threads
+        )
+    );
+}
+
+
