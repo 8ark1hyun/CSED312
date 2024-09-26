@@ -66,6 +66,11 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+
+// advanced schedular - pintos 1
+int global_load_avg; // 시스템의 평균 부하 
+
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
