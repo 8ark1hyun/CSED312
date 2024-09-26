@@ -99,6 +99,10 @@ struct thread
    struct list donations; // 자신에게 priority를 준 thread 리스트
    struct list_elem donation_elem; // donation list의 element
 
+   // advanced scheduler - pintos 1
+   int nice_level; // thread의 nice 값
+   int cpu_usage; // thread의 최근 cpu 사용량
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
