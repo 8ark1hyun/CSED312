@@ -213,6 +213,13 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  // advanced scheduler - pintos 1
+  if (thread_mlfqs) {
+    sema_down (&lock->semaphore);
+    lock->holder = thread_current ();
+    return ;
+  }
+
   // priority scheduling - pintos 1
   if(lock -> holder) // lock을 보유한 thread가 있으면
   {
@@ -257,6 +264,13 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
+
+  // advanced scheduler - pintos 1
+  lock->holder = NULL;
+  if (thread_mlfqs) {
+    sema_up (&lock->semaphore);
+    return ;
+  }
 
   // priority scheduling - pintos 1
   clear_donations_for_lock(lock); // 현재 thread에 대해 우선순위 기부 정리함
