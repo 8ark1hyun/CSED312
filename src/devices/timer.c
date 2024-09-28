@@ -93,7 +93,7 @@ timer_sleep (int64_t ticks)
   // int64_t start = timer_ticks ();
 
   // Alarm Clock - pintos 1
-  int64_t start = timer_ticks (); // 현재의 ticks 값
+  int64_t start = timer_ticks (); // 현재 ticks 값
   // end
 
   ASSERT (intr_get_level () == INTR_ON);
@@ -101,7 +101,7 @@ timer_sleep (int64_t ticks)
   //   thread_yield ();
 
   // Alarm Clock - pintos 1
-  thread_sleep (start + ticks); // 현재 + 얼마나 더 잠? = 일어날시간
+  thread_sleep (start + ticks); // 현재 ticks 값 + sleep 해야하는 시간 = 깨어날 시간
   // end
 }
 
@@ -187,16 +187,17 @@ timer_interrupt (struct intr_frame *args UNUSED)
     mlfqs_increment_cpu_time ();
     if (ticks % 4 == 0) {
       // mlfqs_update_all_cpu_usages ();
-      mlfqs_recalculate_all_priorities ();
+      mlfqs_update_all_priorities ();
       if (ticks % TIMER_FREQ == 0) {
         mlfqs_update_all_cpu_usages ();
         mlfqs_update_load_average ();
       }
     }
   }
+  // end
 
   // Alarm Clock - pintos 1
-  thread_awake (ticks);
+  thread_awake (ticks); // 깨어날 thread가 있는지 확인하고, 있다면 깨우기
   // end
 }
 
