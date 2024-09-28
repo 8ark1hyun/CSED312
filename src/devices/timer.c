@@ -92,14 +92,17 @@ timer_sleep (int64_t ticks)
   // original code
   // int64_t start = timer_ticks ();
 
-  // ASSERT (intr_get_level () == INTR_ON);
+  // Alarm Clock - pintos 1
+  int64_t start = timer_ticks (); // 현재의 ticks 값
+  // end
+
+  ASSERT (intr_get_level () == INTR_ON);
   // while (timer_elapsed (start) < ticks) 
   //   thread_yield ();
 
-  // alarm clock - pintos 1
-  int64_t start = timer_ticks (); // 현재의 tick값
+  // Alarm Clock - pintos 1
   thread_sleep (start + ticks); // 현재 + 얼마나 더 잠? = 일어날시간
-
+  // end
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -171,7 +174,7 @@ timer_print_stats (void)
 {
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
@@ -179,21 +182,22 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
 
-  // advanced scheduler - pintos 1
+  // Advanced Scheduler - pintos 1
   if (thread_mlfqs){
-    mlfqs_increment_cpu_time();
-    if (ticks % 4 == 0){
-      // mlfqs_update_all_cpu_usages();
-      mlfqs_recalculate_all_priorities();
-      if (ticks % TIMER_FREQ == 0){
-        mlfqs_update_all_cpu_usages();
-        mlfqs_update_load_average();
+    mlfqs_increment_cpu_time ();
+    if (ticks % 4 == 0) {
+      // mlfqs_update_all_cpu_usages ();
+      mlfqs_recalculate_all_priorities ();
+      if (ticks % TIMER_FREQ == 0) {
+        mlfqs_update_all_cpu_usages ();
+        mlfqs_update_load_average ();
       }
     }
   }
 
-  // alarm clock - pintos 1
-  thread_awake(ticks);
+  // Alarm Clock - pintos 1
+  thread_awake (ticks);
+  // end
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

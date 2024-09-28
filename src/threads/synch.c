@@ -71,8 +71,8 @@ sema_down (struct semaphore *sema)
       // original code
       // list_push_back (&sema->waiters, &thread_current ()->elem);
 
-      // priority scheduling - pintos 1
-      list_insert_ordered(&sema -> waiters, &thread_current() -> elem, compare_priority, NULL);
+      // Priority Scheduling - pintos 1
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, NULL);
       // end
 
       thread_block ();
@@ -121,8 +121,8 @@ sema_up (struct semaphore *sema)
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters))
   {
-    // priority scheduling - pintos 1
-    list_sort(&sema -> waiters, compare_priority, NULL);
+    // Priority Scheduling - pintos 1
+    list_sort (&sema->waiters, compare_priority, NULL);
     // end
 
     thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
@@ -130,7 +130,7 @@ sema_up (struct semaphore *sema)
 
   sema->value++;
   
-  // priority scheduling - pintos 1
+  // Priority Scheduling - pintos 1
   check_priority_switch();
   // end
 
@@ -173,7 +173,7 @@ sema_test_helper (void *sema_)
       sema_up (&sema[1]);
     }
 }
-
+
 /* Initializes LOCK.  A lock can be held by at most a single
    thread at any given time.  Our locks are not "recursive", that
    is, it is an error for the thread currently holding a lock to
@@ -213,24 +213,30 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  // advanced scheduler - pintos 1
+  // Advanced Scheduler - pintos 1
   if (thread_mlfqs) {
     sema_down (&lock->semaphore);
     lock->holder = thread_current ();
-    return ;
+    return;
   }
+  // end
 
-  // priority scheduling - pintos 1
-  if(lock -> holder) // lock을 보유한 thread가 있으면
+  // Priority Scheduling - pintos 1
+  if (lock->holder) // lock을 보유한 thread가 있으면
   {
-    thread_current() -> waiting_lock = lock; // 현재 thread가 기다리는 lock을 저장
+    thread_current ()->waiting_lock = lock; // 현재 thread가 기다리는 lock을 저장
     // lock을 보유하고 있는 thread의 donation list에 현재 thread를 추가하며 우선순위 정렬
-    list_insert_ordered(&lock -> holder -> donations, &thread_current() -> donation_elem, compare_donate_priority, NULL);
-    apply_priority_donation(); // 우선순위 기부 실행
+    list_insert_ordered (&lock->holder->donations, &thread_current ()->donation_elem, compare_donate_priority, NULL);
+    apply_priority_donation (); // 우선순위 기부 실행
   }
+  // end
 
   sema_down (&lock->semaphore);
-  thread_current() -> waiting_lock = NULL;
+
+  // Priority Scheduling - pintos 1
+  thread_current ()->waiting_lock = NULL;
+  // end
+
   lock->holder = thread_current ();
 }
 
@@ -265,16 +271,18 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  // advanced scheduler - pintos 1
+  // Advanced Scheduler - pintos 1
   lock->holder = NULL;
   if (thread_mlfqs) {
     sema_up (&lock->semaphore);
-    return ;
+    return;
   }
+  // end
 
-  // priority scheduling - pintos 1
-  clear_donations_for_lock(lock); // 현재 thread에 대해 우선순위 기부 정리함
-  recalculate_priority(); // 우선순위 재설정 & 기부된 우선순위 반영
+  // Priority Scheduling - pintos 1
+  clear_donations_for_lock (lock); // 현재 thread에 대해 우선순위 기부 정리
+  recalculate_priority (); // 우선순위 재설정 & 기부된 우선순위 반영
+  // end
 
   // lock->holder = NULL;
   sema_up (&lock->semaphore);
@@ -290,7 +298,7 @@ lock_held_by_current_thread (const struct lock *lock)
 
   return lock->holder == thread_current ();
 }
-
+
 /* One semaphore in a list. */
 struct semaphore_elem 
   {
@@ -344,8 +352,8 @@ cond_wait (struct condition *cond, struct lock *lock)
   // original code
   // list_push_back (&cond->waiters, &waiter.elem);
 
-  // priority scheduling - pintos 1
-  list_insert_ordered(&cond -> waiters, &waiter.elem, sema_compare_priority, NULL);
+  // Priority Scheduling - pintos 1
+  list_insert_ordered (&cond->waiters, &waiter.elem, sema_compare_priority, NULL);
   // end
 
   lock_release (lock);
@@ -370,8 +378,8 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 
   if (!list_empty (&cond->waiters)) 
   {
-    // priority scheduling - pintos 1
-    list_sort(&cond -> waiters, sema_compare_priority, NULL);
+    // Priority Scheduling - pintos 1
+    list_sort (&cond->waiters, sema_compare_priority, NULL);
     // end
    
     sema_up (&list_entry (list_pop_front (&cond->waiters), struct semaphore_elem, elem)->semaphore);
@@ -394,30 +402,16 @@ cond_broadcast (struct condition *cond, struct lock *lock)
     cond_signal (cond, lock);
 }
 
-// priority scheduling - pintos 1
-
-/*// sema -> waiters list에서 가장 높은 priority를 가진 thread의 priority를 반환
-int sema_highest_priority (struct semaphore *temp)
+// Priority Scheduling - pintos 1
+bool
+sema_compare_priority (const struct list_elem *temp_1, const struct list_elem *temp_2)
 {
-  return &list_entry(list_begin(&temp -> waiters), struct thread, elem) -> priority;
+	struct semaphore_elem *temp_1_sema = list_entry (temp_1, struct semaphore_elem, elem);
+	struct semaphore_elem *temp_2_sema = list_entry (temp_2, struct semaphore_elem, elem);
+
+	struct list *waiter_temp_1_sema = &(temp_1_sema->semaphore.waiters);
+	struct list *waiter_temp_2_sema = &(temp_2_sema->semaphore.waiters);
+
+	return list_entry (list_begin (waiter_temp_1_sema), struct thread, elem)->priority > list_entry (list_begin (waiter_temp_2_sema), struct thread, elem)->priority;
 }
-
-
-// 두개의 sema -> waiters list에서 가장 높은 priority들끼리 비교
-bool sema_compare_priority (struct list_elem *temp_1, struct list_elem *temp_2)
-{
-  return sema_highest_priority(&list_entry(temp_1, struct semaphore_elem, elem) -> semaphore) > sema_highest_priority(&list_entry(temp_2, struct semaphore_elem, elem) -> semaphore);
-}*/
-
-bool sema_compare_priority (const struct list_elem *temp1, const struct list_elem *temp2)
-{
-	struct semaphore_elem *temp1_sema = list_entry (temp1, struct semaphore_elem, elem);
-	struct semaphore_elem *temp2_sema = list_entry (temp2, struct semaphore_elem, elem);
-
-	struct list *waiter_temp1_sema = &(temp1_sema->semaphore.waiters);
-	struct list *waiter_temp2_sema = &(temp2_sema->semaphore.waiters);
-
-	return list_entry (list_begin (waiter_temp1_sema), struct thread, elem)->priority > list_entry (list_begin (waiter_temp2_sema), struct thread, elem)->priority;
-}
-
 // end

@@ -90,16 +90,16 @@ struct thread
     int priority;                       /* 현재의 Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-   // alarm clock - pintos 1
+   // Alarm Clock - pintos 1
    int64_t alarmTick;
 
-   // priority scheduling - pintos 1
-   int original_priority; // 맨처음원래 priority
-   struct lock *waiting_lock; // thread가 현재 받을라고 대기하고 있는 lock
+   // Priority Scheduling - pintos 1
+   int original_priority; // 맨 처음 원래 priority
+   struct lock *waiting_lock; // thread가 현재 받으려고 대기하고 있는 lock
    struct list donations; // 자신에게 priority를 준 thread 리스트
    struct list_elem donation_elem; // donation list의 element
 
-   // advanced scheduler - pintos 1
+   // Advanced Scheduler - pintos 1
    int nice; // thread의 nice 값
    int recent_cpu; // thread의 최근 cpu 사용량
 
@@ -151,25 +151,25 @@ void thread_set_nice (int nice UNUSED);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-// alarm clock - pintos 1
-void thread_sleep(int64_t ticks);
-void thread_awake(int64_t ticks);
+// Alarm Clock - pintos 1
+void thread_sleep (int64_t ticks);
+void thread_awake (int64_t ticks);
 
-// priority scheduling - pintos 1
-bool compare_priority(struct list_elem *temp_1, struct list_elem *temp_2);
-bool compare_donate_priority(struct list_elem *temp_1, struct list_elem *temp_2);
-void check_priority_switch(void);
+// Priority Scheduling - pintos 1
+bool compare_priority( struct list_elem *temp_1, struct list_elem *temp_2);
+bool compare_donate_priority (struct list_elem *temp_1, struct list_elem *temp_2);
+void check_priority_switch (void);
 void apply_priority_donation (void);
-void clear_donations_for_lock(struct lock *lock);
-void recalculate_priority(void);
+void clear_donations_for_lock (struct lock *lock);
+void recalculate_priority (void);
 
-// advanced schedular - pintos 1
-void mlfqs_update_priority(struct thread *current_thread); // calculate prioirity
-void mlfqs_update_cpu_time(struct thread *current_thread); // calculate recent cpu
-void mlfqs_update_load_average(void);
-void mlfqs_increment_cpu_time(void);
-void mlfqs_update_all_cpu_usages(void);
-void mlfqs_recalculate_all_priorities(void);
+// Advanced Scheduler - pintos 1
+void mlfqs_update_priority (struct thread *current_thread); // calculate prioirity
+void mlfqs_update_cpu_time (struct thread *current_thread); // calculate recent cpu
+void mlfqs_update_load_average (void);
+void mlfqs_increment_cpu_time (void);
+void mlfqs_update_all_cpu_usages (void);
+void mlfqs_recalculate_all_priorities (void);
 
 
 
@@ -178,16 +178,16 @@ void mlfqs_recalculate_all_priorities(void);
 #define MIN_INT (-(1 << 31))
 
 /* 고정 소수점 연산 함수 선언 */
-int convert_to_fixed_point(int n);         // 정수를 고정 소수점으로 변환
-int convert_to_int(int x);                 // 고정 소수점을 정수로 변환 (내림)
-int convert_to_int_nearest(int x);         // 고정 소수점을 정수로 변환 (반올림)
-int add_fixed_point(int x, int y);         // 두 고정 소수점을 더함
-int subtract_fixed_point(int x, int y);    // 두 고정 소수점을 뺌
-int add_int_fixed_point(int x, int n);     // 고정 소수점에 정수를 더함
-int subtract_int_fixed_point(int x, int n);// 고정 소수점에서 정수를 뺌
-int multiply_fixed_point(int x, int y);    // 두 고정 소수점을 곱함
-int multiply_int_fixed_point(int x, int n);// 고정 소수점에 정수를 곱함
-int divide_fixed_point(int x, int y);      // 두 고정 소수점을 나눔
-int divide_int_fixed_point(int x, int n);  // 고정 소수점을 정수로 나눔
+int convert_to_fixed_point (int n);          // 정수를 고정 소수점으로 변환
+int convert_to_int (int x);                  // 고정 소수점을 정수로 변환 (내림)
+int convert_to_int_nearest (int x);          // 고정 소수점을 정수로 변환 (반올림)
+int add_fixed_point (int x, int y);          // 두 고정 소수점을 더함
+int subtract_fixed_point (int x, int y);     // 두 고정 소수점을 뺌
+int add_int_fixed_point (int x, int n);      // 고정 소수점에 정수를 더함
+int subtract_int_fixed_point (int x, int n); // 고정 소수점에서 정수를 뺌
+int multiply_fixed_point (int x, int y);     // 두 고정 소수점을 곱함
+int multiply_int_fixed_point (int x, int n); // 고정 소수점에 정수를 곱함
+int divide_fixed_point (int x, int y);       // 두 고정 소수점을 나눔
+int divide_int_fixed_point (int x, int n);   // 고정 소수점을 정수로 나눔
 
 #endif /* threads/thread.h */
