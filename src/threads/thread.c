@@ -30,7 +30,7 @@ static struct list ready_list;
 static struct list all_list;
 
 // Alarm Clock - pintos 1
-static struct list sleep_list; 
+static struct list sleep_list; // sleep 상태의 threads list
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -101,7 +101,7 @@ thread_init (void)
   list_init (&all_list);
 
   // Alarm Clock - pintos 1
-  list_init (&sleep_list);
+  list_init (&sleep_list); // sleep_list에 추가
   // end
 
   /* Set up a thread structure for the running thread. */
@@ -217,7 +217,7 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
 
   // Priority Scheduling - pintos 1
-  check_priority_switch();
+  check_priority_switch(); // priority switch 확인
   // end
 
   return tid;
@@ -262,8 +262,8 @@ thread_unblock (struct thread *t)
   // t->status = THREAD_READY;
 
   // Priority Scheduling - pintos 1
-  list_insert_ordered (&ready_list, &t -> elem, compare_priority, NULL); // ready list에 넣어줄 때 정렬
-  t->status = THREAD_READY; // thread를 ready 상태로 변경
+  list_insert_ordered (&ready_list, &t -> elem, compare_priority, NULL); // ready_list에 넣어줄 때 정렬
+  t->status = THREAD_READY; // thread 상태를 ready로 전환
   // end
 
   intr_set_level (old_level);
@@ -340,7 +340,7 @@ thread_yield (void)
     // list_push_back (&ready_list, &cur->elem);
 
     // Priority Scheduling - pintos 1
-    list_insert_ordered (&ready_list, &cur -> elem, compare_priority, NULL); // ready list에 넣어줄 때 정렬
+    list_insert_ordered (&ready_list, &cur -> elem, compare_priority, NULL); // ready_list에 넣어줄 때 정렬
     // end
   }
   cur->status = THREAD_READY;
@@ -379,7 +379,7 @@ thread_set_priority (int new_priority)
 
   // Priority Scheduling - pintos 1
   recalculate_priority ();
-  check_priority_switch ();
+  check_priority_switch (); // priority switch 확인
   // end
 }
 
@@ -391,24 +391,23 @@ thread_get_priority (void)
 }
 
 /* Sets the current thread's nice value to NICE. */
-// 현재 thread의 nice값 새로 설정
 void
 thread_set_nice (int nice UNUSED) {
-  enum intr_level previous_interrupt_state = intr_disable ();
-  thread_current ()->nice = nice;
-  mlfqs_update_priority (thread_current ());
-  check_priority_switch ();
-  intr_set_level (previous_interrupt_state);
+  enum intr_level old_level = intr_disable (); // 현재 interrupt를 저장하고 비활성화
+  struct thread *current_thread = thread_current ();
+  current_thread->nice = nice;
+  mlfqs_update_priority (current_thread);
+  check_priority_switch (); // priority switch 확인
+  intr_set_level (old_level);  // interrupt 복원
 }
 
 /* Returns the current thread's nice value. */
-// thread의 nice를 반환
 int
 thread_get_nice (void)
 {
-    enum intr_level previous_interrupt_state = intr_disable (); // interrupt를 비활성화하여 안전하게 값에 접근 
+    enum intr_level old_level = intr_disable (); // 현재 interrupt를 저장하고 비활성화
     int current_nice_value = thread_current ()->nice;          
-    intr_set_level (previous_interrupt_state); //interrupt를 이전값으로 복원          
+    intr_set_level (old_level); // interrupt 복원
     return current_nice_value;       
 }
 
@@ -416,9 +415,9 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void)
 { 
-  enum intr_level previous_interrupt_state = intr_disable ();
+  enum intr_level old_level = intr_disable (); // 현재 interrupt를 저장하고 비활성화
   int load_avg_value = convert_to_int_nearest (multiply_int_fixed_point (load_avg, 100));
-  intr_set_level (previous_interrupt_state);
+  intr_set_level (old_level); // interrupt 복원
   return load_avg_value;
 }
 
@@ -426,10 +425,10 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void)
 {
-  enum intr_level previous_interrupt_state = intr_disable ();
-  int recent_cpu = convert_to_int_nearest (multiply_int_fixed_point (thread_current ()->recent_cpu, 100));
-  intr_set_level (previous_interrupt_state);
-  return recent_cpu;
+  enum intr_level old_level = intr_disable (); // 현재 interrupt를 저장하고 비활성화
+  int recent_cpu_value = convert_to_int_nearest (multiply_int_fixed_point (thread_current ()->recent_cpu, 100));
+  intr_set_level (old_level); // interrupt 복원
+  return recent_cpu_value;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -520,20 +519,20 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
-  old_level = intr_disable ();
-  list_push_back (&all_list, &t->allelem);
-  intr_set_level (old_level);
-
   // Priority Scheduling - pintos 1
-  t -> original_priority = priority;
-  t -> waiting_lock = NULL;
-  list_init (&t -> donations);
+  t->original_priority = priority;
+  t->waiting_lock = NULL;
+  list_init (&t->donations);
   // end
 
   // Advanced Scheduler - pintos 1
   t->nice = 0;
   t->recent_cpu = 0;
   // end
+
+  old_level = intr_disable ();
+  list_push_back (&all_list, &t->allelem);
+  intr_set_level (old_level);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -656,36 +655,35 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 void
 thread_sleep (int64_t ticks)
 {
-  struct thread *current = thread_current (); // 현재 실행중인 thread를 가져옴
-  enum intr_level old_level = intr_disable (); // 현재 interrupt를 저장
+  enum intr_level old_level = intr_disable (); // 현재 interrupt를 저장하고 비활성화
+  struct thread *current_thread = thread_current (); // 현재 실행 중인 thread
 
-  ASSERT (is_thread (current));
-  ASSERT (current != idle_thread) // idle thread는 재우면 안됨
+  ASSERT (current_thread != idle_thread) // idle thread는 sleep 상태가 되어서는 안 됨
   
-  current->alarmTick = ticks; // thread가 잠에서 깨어나야할 ticks을 저장
+  current_thread->alarmTicks = ticks; // thread가 깨어나야 할 ticks을 저장
 
-  list_push_back (&sleep_list, &current->elem); // sleep list에 넣어줌
+  list_push_back (&sleep_list, &current_thread->elem); // sleep_list에 추가
   thread_block (); // thread를 block 상태로 전환
-  intr_set_level (old_level); // interrupt를 복원해줌
+  intr_set_level (old_level); // interrupt 복원
 }
 
 void
 thread_awake (int64_t ticks)
 {
-  struct list_elem *next_elem = list_begin (&sleep_list); // sleep_list의 첫 번째 요소 가져옴
+  struct list_elem *next_elem = list_begin (&sleep_list); // sleep_list의 첫 번째 요소
 
-  while (next_elem != list_end (&sleep_list)) // 리스트의 끝까지 순회
+  while (next_elem != list_end (&sleep_list)) // sleep_list의 끝까지 순회
   { 
-    struct thread *current_thread = list_entry (next_elem, struct thread, elem); // next elem이 가리키는 list요소에 해당하는 thread의 주소가 current thread로 들어감
+    struct thread *current_thread = list_entry (next_elem, struct thread, elem); // next_elem이 가리키는 sleep_list 요소에 해당하는 thread의 주소가 current_thread에 저장
     
-    if (current_thread->alarmTick <= ticks) // thread가 깨어날 시간이 되었는지 확인
+    if (current_thread->alarmTicks <= ticks) // current_thread가 깨어날 시간이 되었는지 확인
     {
       next_elem = list_remove (next_elem); // list에서 해당 thread를 제거하고 다음 element로 이동
       thread_unblock (current_thread); // thread 상태를 block에서 ready로 전환
     }
     else 
     {
-      next_elem = list_next (next_elem); // 아직 깨울 시간 아님
+      next_elem = list_next (next_elem); // 아직 깨울 시간 아닌 경우 다음 element로 이동
     }
   }
 }
@@ -693,102 +691,100 @@ thread_awake (int64_t ticks)
 
 
 // Priority Scheduling - pintos 1
-// thread간의 우선순위를 비교
+// thread 간의 priority 비교
 bool
 compare_priority (struct list_elem *temp_1, struct list_elem *temp_2)
 {
   return list_entry (temp_1, struct thread, elem)->priority > list_entry (temp_2, struct thread, elem)->priority;
 }
 
-// donation list 우선순위를 비교
+// donation_list priority 비교
 bool
 compare_donate_priority (struct list_elem *temp_1, struct list_elem *temp_2) 
 {
   return list_entry (temp_1, struct thread, donation_elem)->priority > list_entry (temp_2, struct thread, donation_elem)->priority;
 }
 
-// ready_list의 가장 앞에 있는 thread와 현재 실행중인 thread를 비교해서 전자가 더 priority가 높으면 실행
+// 현재 실행 중인 thread와 ready_list의 가장 앞에 있는 thread를 비교하여 후자가 더 높은 priority를 가지면 thread_yield () 실행
 void
 check_priority_switch (void) 
 {
   if (!list_empty (&ready_list)) // ready_list가 비어있지 않음
   {
-      struct thread *current = thread_current ();
-      struct thread *highest_priority_thread = list_entry (list_front (&ready_list), struct thread, elem);
+      struct thread *current = thread_current (); // 현재 thread
+      struct thread *highest_priority_thread = list_entry (list_front (&ready_list), struct thread, elem); //ready_list의 가장 앞에 있는 thread, 즉 priority가 가장 높은 thread
 
-      if (current->priority < highest_priority_thread->priority) // 현재 thread의 우선순위가 ready list의 첫번째 thread보다 낮을 때 두 개를 switch
+      if (current->priority < highest_priority_thread->priority) // 현재 thread의 priority가 ready_list의 가장 앞에 있는 thread보다 낮을 때 thread_yield () 실행
       {
           thread_yield ();
       }
   }
 }
 
-// 우선순위 기부 실시
+// priority 기부
 void
 apply_priority_donation (void) 
 {  
   struct thread *current_thread = thread_current ();
+  struct thread *lock_holder;
 
-  // 최대 8번의 우선순위 기부를 시도
+  // 최대 8번의 priority 기부 시도
   for (int i = 0; i < 8; i++)
   {
-    // thread가 더 이상 기다리고 있는 락이 없으면 종료
+    // thread가 더 이상 기다리고 있는 lock이 없으면 종료
     if (current_thread->waiting_lock == NULL) 
     {
       break;
     }
 
-    // 락을 소유한 thread에게 우선순위 기부
-    struct thread *lock_holder = current_thread->waiting_lock->holder;
+    // lock을 소유한 thread에게 priority 기부
+    lock_holder = current_thread->waiting_lock->holder;
     if (lock_holder->priority < current_thread->priority)
     {
       lock_holder->priority = current_thread->priority;
     }
         
-    // 우선순위를 기부 받은 thread를 현재 thread로 업데이트
+    // priority를 기부 받은 thread를 현재 thread로 업데이트
     current_thread = lock_holder;
   }
 }
 
-// donations list에서 thread를 지운다
+// donation_list에서 thread 제거
 void
 clear_donations_for_lock (struct lock *lock) 
 {
-  struct list_elem *elem; // donations list를 순회할 때 사용할 element
+  struct list_elem *elem; // donation_list를 순회할 때 사용할 element
   struct thread *current_thread = thread_current (); // 현재 실행 중인 thread
+  struct thread *donating_thread;
 
-  // donations 리스트의 첫 번째부터 마지막까지 순회
+  // donation_list의 첫 번째부터 마지막까지 순회
   for (elem = list_begin (&current_thread->donations); elem != list_end (&current_thread->donations); elem = list_next (elem)) 
   {
-    struct thread *donating_thread = list_entry (elem, struct thread, donation_elem); // donations 리스트에 있는 thread를 가져옴
+    donating_thread = list_entry (elem, struct thread, donation_elem); // donation_list에 있는 thread
     
     if (donating_thread->waiting_lock == lock) // 해당 thread가 현재 해제하려는 lock을 기다리고 있는지 확인
     { 
-      list_remove (elem); // donations 리스트에서 해당 thread 제거
+      list_remove (elem); // donation_list에서 해당 thread 제거
     }
   }
 }
 
-// 우선순위를 재계산
+// priority 재계산
 void
 recalculate_priority (void)
 {
-  struct thread *current_thread = thread_current (); // 현재 thread를 가져옴
+  struct thread *current_thread = thread_current (); // 현재 thread
+  struct thread *highest_priority_thread;
 
-  // thread의 우선순위를 기본 우선순위 (init_priority)로 초기화
-  current_thread->priority = current_thread->original_priority;
+  current_thread->priority = current_thread->original_priority; // thread의 priority를 원래 priority로 초기화
 
-  // donations 리스트가 비어있지 않은 경우 우선순위를 재조정
-  if (!list_empty (&current_thread->donations)) 
+  if (!list_empty (&current_thread->donations)) // donation_list가 비어있지 않은 경우 priority 재조정
   {
-    // donations 리스트를 우선순위에 따라 정렬
-    list_sort (&current_thread->donations, compare_donate_priority, NULL);
+    list_sort (&current_thread->donations, compare_donate_priority, NULL); // donation_list를 priority에 따라 정렬
 
-    // donations 리스트에서 가장 우선순위가 높은 thread를 가져옴
-    struct thread *highest_priority_thread = list_entry (list_front (&current_thread->donations), struct thread, donation_elem);
+    highest_priority_thread = list_entry (list_front (&current_thread->donations), struct thread, donation_elem); // donation_list에서 가장 높은 priority를 가진 thread
     
-    // 가장 높은 우선순위가 현재 thread의 기본 우선순위보다 높으면 우선순위를 조정
-    if (highest_priority_thread->priority > current_thread->priority) 
+    if (highest_priority_thread->priority > current_thread->priority) // 현재 thread의 priority가 donation_list의 가장 높은 priority보다 높은 경우 priority 재조정
     {
       current_thread->priority = highest_priority_thread->priority;
     }
@@ -798,20 +794,38 @@ recalculate_priority (void)
 
 
 // Advanced Scheduler - pintos 1
-// thread의 우선순위 계산
+// thread의 priority 계산
 void
 mlfqs_update_priority (struct thread *current_thread) 
 {
+    int temp;
+    int priority;
+
     if (current_thread == idle_thread)
     {
       return;
     }
 
-    int temp = subtract_fixed_point (PRI_MAX, convert_to_int_nearest (divide_int_fixed_point (current_thread->recent_cpu, 4)));
-    current_thread->priority = subtract_fixed_point (temp, multiply_int_fixed_point (current_thread->nice, 2));
+    temp = subtract_fixed_point (PRI_MAX, convert_to_int_nearest (divide_int_fixed_point (current_thread->recent_cpu, 4)));
+    priority = subtract_fixed_point (temp, multiply_int_fixed_point (current_thread->nice, 2));
+
+    if (priority > PRI_MAX)
+    {
+      current_thread->priority = PRI_MAX;
+    }
+    else if (priority < PRI_MIN)
+    {
+      current_thread->priority = PRI_MIN;
+    }
+    else
+    {
+      current_thread->priority = priority;
+    }
+
+    return;
 }
 
-// thread가 최근에 사용한 CPU시간을 계산
+// thread의 최근 CPU 사용량 계산
 void
 mlfqs_update_cpu_time (struct thread *current_thread) 
 {
@@ -823,71 +837,75 @@ mlfqs_update_cpu_time (struct thread *current_thread)
     current_thread->recent_cpu = add_int_fixed_point (multiply_fixed_point (divide_fixed_point (multiply_int_fixed_point (load_avg, 2), add_int_fixed_point (multiply_int_fixed_point (load_avg, 2), 1)), current_thread->recent_cpu), current_thread->nice);
 }
 
-// 시스탬의 평균 부하 계산
+// 시스템의 평균 부하 계산
 void
 mlfqs_update_load_average (void)
 {
-    int active_threads;
+    int ready_threads;
 
-    if (thread_current () == idle_thread) {
-        active_threads = list_size (&ready_list);
-    } else {
-        active_threads = list_size (&ready_list) + 1;
+    if (thread_current () == idle_thread)
+    {
+        ready_threads = list_size (&ready_list);
+    }
+    else
+    {
+        ready_threads = list_size (&ready_list) + 1;
     }
 
     load_avg = add_fixed_point (
         multiply_fixed_point (
             divide_fixed_point (convert_to_fixed_point (59), convert_to_fixed_point (60)), load_avg), 
         multiply_int_fixed_point (
-            divide_fixed_point (convert_to_fixed_point (1), convert_to_fixed_point (60)), active_threads));
+            divide_fixed_point (convert_to_fixed_point (1), convert_to_fixed_point (60)), ready_threads));
 }
 
-// 현재 실행 중인 thread의 recent_cpu를 tick마다 1씩 증가시킴
+// 현재 실행 중인 thread의 recent_cpu를 tick마다 1씩 증가
 void
 mlfqs_increment_cpu_time (void)
 {
-    if (thread_current () != idle_thread) {  // idle_thread는 제외
+    if (thread_current () != idle_thread) // idle_thread 제외
+    { 
         thread_current ()->recent_cpu = add_int_fixed_point (thread_current ()->recent_cpu, 1); // 1 증가
     }
 }
 
-// 모든 thread의 recent_cpu 값을 재계산 -> all_list에 있는 모든 thread를 순회하면서 각 thread의 CPU 사용량을 갱신
+// 모든 thread의 recent_cpu 값 재계산
 void
 mlfqs_update_all_cpu_usages (void) 
 {
-    // all_list에 있는 모든 thread를 순회하면서 recent_cpu 값을 갱신
-    for (struct list_elem *element = list_begin (&all_list); element != list_end (&all_list); element = list_next (element)) {
-        mlfqs_update_cpu_time (list_entry (element, struct thread, allelem));  // 각 thread의 recent_cpu 값을 계산
+    for (struct list_elem *element = list_begin (&all_list); element != list_end (&all_list); element = list_next (element)) // all_list에 있는 모든 thread를 순회하면서 recent_cpu 값 업데이트
+    {
+        mlfqs_update_cpu_time (list_entry (element, struct thread, allelem));  // 각 thread의 recent_cpu 값 계산
     }
 }
 
-//모든 thread의 priority 재계산 -> all_list에 있는 모든 thread를 순회하면서 각 thread의 우선순위를 재조정
+//모든 thread의 priority 값 재계산
 void
-mlfqs_recalculate_all_priorities (void)
+mlfqs_update_all_priorities (void)
 {
-    // all_list에 있는 모든 thread를 순회하면서 우선순위를 재조정
-    for (struct list_elem *element = list_begin (&all_list); element != list_end (&all_list); element = list_next (element)) {
-        mlfqs_update_priority (list_entry(element, struct thread, allelem));  // 각 thread의 priority 값을 재조정
+    for (struct list_elem *element = list_begin (&all_list); element != list_end (&all_list); element = list_next (element)) // all_list에 있는 모든 thread를 순회하면서 priority 값 업데이트
+    {
+        mlfqs_update_priority (list_entry(element, struct thread, allelem));  // 각 thread의 priority 값 계산
     }
 }
 
 
 // Advanced Scheduler - pintos 1
-/* 정수를 고정 소수점으로 변환 */
+// 정수를 고정 소수점으로 변환
 int
 convert_to_fixed_point (int n)
 {
     return n * FIXED_POINT_SHIFT;
 }
 
-/* 고정 소수점을 정수로 변환 (소수점 이하 내림) */
+// 고정 소수점을 정수로 변환 (소수점 이하 내림)
 int
 convert_to_int (int x)
 {
     return x / FIXED_POINT_SHIFT;
 }
 
-/* 고정 소수점을 정수로 변환 (반올림) */
+// 고정 소수점을 정수로 변환 (반올림)
 int
 convert_to_int_nearest (int x)
 {
@@ -897,14 +915,14 @@ convert_to_int_nearest (int x)
         return (x - FIXED_POINT_SHIFT / 2) / FIXED_POINT_SHIFT;
 }
 
-/* 두 고정 소수점 값을 더함 */
+// 두 고정 소수점 값을 더함
 int
 add_fixed_point (int x, int y)
 {
     return x + y;
 }
 
-/* 두 고정 소수점 값을 뺌 */
+// 두 고정 소수점 값을 뺌
 int
 subtract_fixed_point (int x, int y)
 {
@@ -918,35 +936,35 @@ add_int_fixed_point (int x, int n)
     return x + n * FIXED_POINT_SHIFT;
 }
 
-/* 고정 소수점에서 정수를 뺌 */
+// 고정 소수점에서 정수를 뺌
 int
 subtract_int_fixed_point (int x, int n)
 {
     return x - n * FIXED_POINT_SHIFT;
 }
 
-/* 두 고정 소수점 값을 곱함 */
+// 두 고정 소수점 값을 곱함
 int
 multiply_fixed_point (int x, int y)
 {
     return ((int64_t) x) * y / FIXED_POINT_SHIFT;
 }
 
-/* 고정 소수점에 정수를 곱함 */
+// 고정 소수점에 정수를 곱함
 int
 multiply_int_fixed_point (int x, int n)
 {
     return x * n;
 }
 
-/* 두 고정 소수점 값을 나눔 */
+// 두 고정 소수점 값을 나눔
 int
 divide_fixed_point (int x, int y)
 {
     return ((int64_t) x) * FIXED_POINT_SHIFT / y;
 }
 
-/* 고정 소수점을 정수로 나눔 */
+// 고정 소수점을 정수로 나눔
 int
 divide_int_fixed_point (int x, int n)
 {

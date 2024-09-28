@@ -91,17 +91,17 @@ struct thread
     struct list_elem allelem;           /* List element for all threads list. */
 
    // Alarm Clock - pintos 1
-   int64_t alarmTick;
+   int64_t alarmTicks; // 깨어나야 하는 ticks 값
 
    // Priority Scheduling - pintos 1
-   int original_priority; // 맨 처음 원래 priority
+   int original_priority; // 원래의 priority 값
    struct lock *waiting_lock; // thread가 현재 받으려고 대기하고 있는 lock
-   struct list donations; // 자신에게 priority를 준 thread 리스트
-   struct list_elem donation_elem; // donation list의 element
+   struct list donations; // 자신에게 priority를 준 thread list
+   struct list_elem donation_elem; // donation_list의 element
 
    // Advanced Scheduler - pintos 1
    int nice; // thread의 nice 값
-   int recent_cpu; // thread의 최근 cpu 사용량
+   int recent_cpu; // thread의 최근 CPU 사용량
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -156,7 +156,7 @@ void thread_sleep (int64_t ticks);
 void thread_awake (int64_t ticks);
 
 // Priority Scheduling - pintos 1
-bool compare_priority( struct list_elem *temp_1, struct list_elem *temp_2);
+bool compare_priority (struct list_elem *temp_1, struct list_elem *temp_2);
 bool compare_donate_priority (struct list_elem *temp_1, struct list_elem *temp_2);
 void check_priority_switch (void);
 void apply_priority_donation (void);
@@ -164,12 +164,12 @@ void clear_donations_for_lock (struct lock *lock);
 void recalculate_priority (void);
 
 // Advanced Scheduler - pintos 1
-void mlfqs_update_priority (struct thread *current_thread); // calculate prioirity
-void mlfqs_update_cpu_time (struct thread *current_thread); // calculate recent cpu
+void mlfqs_update_priority (struct thread *current_thread);
+void mlfqs_update_cpu_time (struct thread *current_thread);
 void mlfqs_update_load_average (void);
 void mlfqs_increment_cpu_time (void);
 void mlfqs_update_all_cpu_usages (void);
-void mlfqs_recalculate_all_priorities (void);
+void mlfqs_update_all_priorities (void);
 
 
 

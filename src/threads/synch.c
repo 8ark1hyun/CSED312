@@ -72,7 +72,7 @@ sema_down (struct semaphore *sema)
       // list_push_back (&sema->waiters, &thread_current ()->elem);
 
       // Priority Scheduling - pintos 1
-      list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, NULL);
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, NULL); // sema->waiters에 넣어줄 때 정렬
       // end
 
       thread_block ();
@@ -122,7 +122,7 @@ sema_up (struct semaphore *sema)
   if (!list_empty (&sema->waiters))
   {
     // Priority Scheduling - pintos 1
-    list_sort (&sema->waiters, compare_priority, NULL);
+    list_sort (&sema->waiters, compare_priority, NULL); //sema_waiters 정렬
     // end
 
     thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
@@ -131,7 +131,7 @@ sema_up (struct semaphore *sema)
   sema->value++;
   
   // Priority Scheduling - pintos 1
-  check_priority_switch();
+  check_priority_switch(); // priority switch 확인
   // end
 
   intr_set_level (old_level);
@@ -222,12 +222,11 @@ lock_acquire (struct lock *lock)
   // end
 
   // Priority Scheduling - pintos 1
-  if (lock->holder) // lock을 보유한 thread가 있으면
+  if (lock->holder) // lock을 보유한 thread가 있는 경우
   {
-    thread_current ()->waiting_lock = lock; // 현재 thread가 기다리는 lock을 저장
-    // lock을 보유하고 있는 thread의 donation list에 현재 thread를 추가하며 우선순위 정렬
-    list_insert_ordered (&lock->holder->donations, &thread_current ()->donation_elem, compare_donate_priority, NULL);
-    apply_priority_donation (); // 우선순위 기부 실행
+    thread_current ()->waiting_lock = lock; // 현재 thread가 기다리는 lock 저장
+    list_insert_ordered (&lock->holder->donations, &thread_current ()->donation_elem, compare_donate_priority, NULL); // lock을 보유하고 있는 thread의 donation_list에 넣어줄 때 정렬
+    apply_priority_donation (); // priority 기부
   }
   // end
 
@@ -280,8 +279,8 @@ lock_release (struct lock *lock)
   // end
 
   // Priority Scheduling - pintos 1
-  clear_donations_for_lock (lock); // 현재 thread에 대해 우선순위 기부 정리
-  recalculate_priority (); // 우선순위 재설정 & 기부된 우선순위 반영
+  clear_donations_for_lock (lock); // 현재 thread에 대해 priority 기부 정리
+  recalculate_priority (); // priority 재계산
   // end
 
   // lock->holder = NULL;
@@ -353,7 +352,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   // list_push_back (&cond->waiters, &waiter.elem);
 
   // Priority Scheduling - pintos 1
-  list_insert_ordered (&cond->waiters, &waiter.elem, sema_compare_priority, NULL);
+  list_insert_ordered (&cond->waiters, &waiter.elem, compare_sema_priority, NULL); // cond->waiters에 넣어줄 때 정렬
   // end
 
   lock_release (lock);
@@ -379,7 +378,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   if (!list_empty (&cond->waiters)) 
   {
     // Priority Scheduling - pintos 1
-    list_sort (&cond->waiters, sema_compare_priority, NULL);
+    list_sort (&cond->waiters, compare_sema_priority, NULL); // cond->waiters 정렬
     // end
    
     sema_up (&list_entry (list_pop_front (&cond->waiters), struct semaphore_elem, elem)->semaphore);
@@ -404,7 +403,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
 // Priority Scheduling - pintos 1
 bool
-sema_compare_priority (const struct list_elem *temp_1, const struct list_elem *temp_2)
+compare_sema_priority (const struct list_elem *temp_1, const struct list_elem *temp_2)
 {
 	struct semaphore_elem *temp_1_sema = list_entry (temp_1, struct semaphore_elem, elem);
 	struct semaphore_elem *temp_2_sema = list_entry (temp_2, struct semaphore_elem, elem);
