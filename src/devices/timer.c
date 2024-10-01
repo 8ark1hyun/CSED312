@@ -179,18 +179,18 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  ticks++;
-  thread_tick ();
+  ticks++; // 현재 ticks 값 증가
+  thread_tick (); // 현재 thread의 ticks 값 증가
 
   // Advanced Scheduler - pintos 1
-  if (thread_mlfqs){
+  if (thread_mlfqs) {
     mlfqs_increment_cpu_time ();
     if (ticks % 4 == 0) {
       // mlfqs_update_all_cpu_usages ();
       mlfqs_update_all_priorities ();
       if (ticks % TIMER_FREQ == 0) {
-        mlfqs_update_all_cpu_usages ();
         mlfqs_update_load_average ();
+        mlfqs_update_all_cpu_usages ();
       }
     }
   }

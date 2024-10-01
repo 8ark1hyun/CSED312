@@ -97,7 +97,7 @@ struct thread
    int original_priority; // 원래의 priority 값
    struct lock *waiting_lock; // thread가 현재 받으려고 대기하고 있는 lock
    struct list donations; // 자신에게 priority를 준 thread list
-   struct list_elem donation_elem; // donation_list의 element
+   struct list_elem donation_elem; // donation_list의 요소
 
    // Advanced Scheduler - pintos 1
    int nice; // thread의 nice 값

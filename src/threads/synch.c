@@ -62,11 +62,11 @@ sema_down (struct semaphore *sema)
 {
   enum intr_level old_level;
 
-  ASSERT (sema != NULL);
-  ASSERT (!intr_context ());
+  ASSERT (sema != NULL); // semaphore가 비어있는지 확인
+  ASSERT (!intr_context ()); // interrupt 처리 중인지 확인
 
-  old_level = intr_disable ();
-  while (sema->value == 0) 
+  old_level = intr_disable (); // 현재 interrupt를 저장하고 비활성화
+  while (sema->value == 0) // semaphore의 값이 0인 경우 반복
     {
       // original code
       // list_push_back (&sema->waiters, &thread_current ()->elem);
@@ -75,10 +75,10 @@ sema_down (struct semaphore *sema)
       list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, NULL); // sema->waiters에 넣어줄 때 정렬
       // end
 
-      thread_block ();
+      thread_block (); // thread를 block 상태로 전환
     }
-  sema->value--;
-  intr_set_level (old_level);
+  sema->value--; // semaphore의 값 감소
+  intr_set_level (old_level); // interrupt 복원
 }
 
 /* Down or "P" operation on a semaphore, but only if the
@@ -92,7 +92,7 @@ sema_try_down (struct semaphore *sema)
   enum intr_level old_level;
   bool success;
 
-  ASSERT (sema != NULL);
+  ASSERT (sema != NULL); 
 
   old_level = intr_disable ();
   if (sema->value > 0) 
@@ -116,25 +116,25 @@ sema_up (struct semaphore *sema)
 {
   enum intr_level old_level;
 
-  ASSERT (sema != NULL);
+  ASSERT (sema != NULL); // semaphore가 비어있는지 확인
 
-  old_level = intr_disable ();
-  if (!list_empty (&sema->waiters))
+  old_level = intr_disable (); // 현재 interrupt를 저장하고 비활성화
+  if (!list_empty (&sema->waiters)) // sema->waiters가 비어있지 않은 경우
   {
     // Priority Scheduling - pintos 1
     list_sort (&sema->waiters, compare_priority, NULL); //sema_waiters 정렬
     // end
 
-    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem)); // sema->waiters의 가장 앞에 있는 thread, 즉 기다리고 있는 thread 중 priority가 가장 높은 thread를 ready 상태로 전환
   } 
 
-  sema->value++;
+  sema->value++; // semaphore의 값 증가
   
   // Priority Scheduling - pintos 1
   check_priority_switch(); // priority switch 확인
   // end
 
-  intr_set_level (old_level);
+  intr_set_level (old_level); // interrupt 복원
 }
 
 static void sema_test_helper (void *sema_);
@@ -210,33 +210,33 @@ void
 lock_acquire (struct lock *lock)
 {
   ASSERT (lock != NULL);
-  ASSERT (!intr_context ());
-  ASSERT (!lock_held_by_current_thread (lock));
+  ASSERT (!intr_context ()); // interrupt 처리 중인지 확인
+  ASSERT (!lock_held_by_current_thread (lock)); // 현재 실행 중인 thread가 lock을 소유하고 있는지 확인
 
   // Advanced Scheduler - pintos 1
   if (thread_mlfqs) {
-    sema_down (&lock->semaphore);
-    lock->holder = thread_current ();
+    sema_down (&lock->semaphore); // sema_down 함수를 호출하여 현재 실행 중인 thread를 block 상태로 전환
+    lock->holder = thread_current (); // 현재 실행 중인 thread를 lock 소유자로 설정
     return;
   }
   // end
 
   // Priority Scheduling - pintos 1
-  if (lock->holder) // lock을 보유한 thread가 있는 경우
+  if (lock->holder) // lock을 소유한 thread가 있는 경우
   {
-    thread_current ()->waiting_lock = lock; // 현재 thread가 기다리는 lock 저장
-    list_insert_ordered (&lock->holder->donations, &thread_current ()->donation_elem, compare_donate_priority, NULL); // lock을 보유하고 있는 thread의 donation_list에 넣어줄 때 정렬
+    thread_current ()->waiting_lock = lock; // 현재 실행 중인 thread가 기다리는 lock 저장
+    list_insert_ordered (&lock->holder->donations, &thread_current ()->donation_elem, compare_donate_priority, NULL); // lock을 소유하고 있는 thread의 donation_list에 넣어줄 때 정렬
     apply_priority_donation (); // priority 기부
   }
   // end
 
-  sema_down (&lock->semaphore);
+  sema_down (&lock->semaphore); // sema_down 함수를 호출하여 현재 실행 중인 thread를 block 상태로 전환
 
   // Priority Scheduling - pintos 1
-  thread_current ()->waiting_lock = NULL;
+  thread_current ()->waiting_lock = NULL; // 현재 실행 중인 thread가 더 이상 기다리고 있는 lock이 없으므로 초기화
   // end
 
-  lock->holder = thread_current ();
+  lock->holder = thread_current (); // 현재 실행 중인 thread를 lock 소유자로 설정
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -251,7 +251,7 @@ lock_try_acquire (struct lock *lock)
   bool success;
 
   ASSERT (lock != NULL);
-  ASSERT (!lock_held_by_current_thread (lock));
+  ASSERT (!lock_held_by_current_thread (lock)); 
 
   success = sema_try_down (&lock->semaphore);
   if (success)
@@ -268,23 +268,23 @@ void
 lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
-  ASSERT (lock_held_by_current_thread (lock));
+  ASSERT (lock_held_by_current_thread (lock)); // 현재 실행 중인 thread가 lock을 소유하고 있는지 확인
 
   // Advanced Scheduler - pintos 1
-  lock->holder = NULL;
   if (thread_mlfqs) {
-    sema_up (&lock->semaphore);
+    lock->holder = NULL; // 더 이상 lock을 소유하고 있는 thread가 없으므로 초기화
+    sema_up (&lock->semaphore); // sema_up 함수를 호출하여 기다리고 있는 thread 중 priority가 가장 높은 thread를 ready 상태로 전환
     return;
   }
   // end
 
   // Priority Scheduling - pintos 1
-  clear_donations_for_lock (lock); // 현재 thread에 대해 priority 기부 정리
+  clear_donations_for_lock (lock); // 현재 해제하려는 lock을 기다리고 있는 thread가 있는 경우 donation_list에서 해당 thread 제거
   recalculate_priority (); // priority 재계산
   // end
 
-  // lock->holder = NULL;
-  sema_up (&lock->semaphore);
+  lock->holder = NULL; // 더 이상 lock을 소유하고 있는 thread가 없으므로 초기화
+  sema_up (&lock->semaphore); // sema_up 함수를 호출하여 기다리고 있는 thread 중 priority가 가장 높은 thread를 ready 상태로 전환
 }
 
 /* Returns true if the current thread holds LOCK, false
@@ -343,10 +343,10 @@ cond_wait (struct condition *cond, struct lock *lock)
 
   ASSERT (cond != NULL);
   ASSERT (lock != NULL);
-  ASSERT (!intr_context ());
-  ASSERT (lock_held_by_current_thread (lock));
+  ASSERT (!intr_context ()); // interrupt 처리 중인지 확인
+  ASSERT (lock_held_by_current_thread (lock)); // 현재 실행 중인 thread가 lock을 소유하고 있는지 확인
   
-  sema_init (&waiter.semaphore, 0);
+  sema_init (&waiter.semaphore, 0); // semaphore 초기화
 
   // original code
   // list_push_back (&cond->waiters, &waiter.elem);
@@ -355,9 +355,9 @@ cond_wait (struct condition *cond, struct lock *lock)
   list_insert_ordered (&cond->waiters, &waiter.elem, compare_sema_priority, NULL); // cond->waiters에 넣어줄 때 정렬
   // end
 
-  lock_release (lock);
-  sema_down (&waiter.semaphore);
-  lock_acquire (lock);
+  lock_release (lock); // lock 해제
+  sema_down (&waiter.semaphore); // sema_down 함수를 호출하여 현재 실행 중인 thread를 block 상태로 전환
+  lock_acquire (lock); // lock 획득
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then
@@ -372,16 +372,16 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 {
   ASSERT (cond != NULL);
   ASSERT (lock != NULL);
-  ASSERT (!intr_context ());
-  ASSERT (lock_held_by_current_thread (lock));
+  ASSERT (!intr_context ()); // interrupt 처리 중인지 확인
+  ASSERT (lock_held_by_current_thread (lock)); // 현재 실행 중인 thread가 lock을 소유하고 있는지 확인
 
-  if (!list_empty (&cond->waiters)) 
+  if (!list_empty (&cond->waiters)) // cond->waiters가 비어있지 않은 경우
   {
     // Priority Scheduling - pintos 1
     list_sort (&cond->waiters, compare_sema_priority, NULL); // cond->waiters 정렬
     // end
    
-    sema_up (&list_entry (list_pop_front (&cond->waiters), struct semaphore_elem, elem)->semaphore);
+    sema_up (&list_entry (list_pop_front (&cond->waiters), struct semaphore_elem, elem)->semaphore); // sema_up 함수를 호출하여 cond->waiters의 가장 앞에 있는 thread, 즉 기다리고 있는 thread 중 priority가 가장 높은 thread를 ready 상태로 전환
   }
 }
 
@@ -402,6 +402,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 }
 
 // Priority Scheduling - pintos 1
+// 두 개의 semaphore->waiters list에서 각각 가장 앞에 있는 thread의 priority 비교
 bool
 compare_sema_priority (const struct list_elem *temp_1, const struct list_elem *temp_2)
 {
