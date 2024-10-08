@@ -89,14 +89,10 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  // original code
-  // int64_t start = timer_ticks ();
-
-  // Alarm Clock - pintos 1
-  int64_t start = timer_ticks (); // 현재 ticks 값
-  // end
+  int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
+  // original code
   // while (timer_elapsed (start) < ticks) 
   //   thread_yield ();
 

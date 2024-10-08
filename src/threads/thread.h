@@ -90,18 +90,18 @@ struct thread
     int priority;                       /* 현재의 Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-   // Alarm Clock - pintos 1
-   int64_t alarmTicks; // 깨어나야 하는 ticks 값
+    // Alarm Clock - pintos 1
+    int64_t alarmTicks; // 깨어나야 하는 ticks 값
 
-   // Priority Scheduling - pintos 1
-   int original_priority; // 원래의 priority 값
-   struct lock *waiting_lock; // thread가 현재 받으려고 대기하고 있는 lock
-   struct list donations; // 자신에게 priority를 준 thread list
-   struct list_elem donation_elem; // donation_list의 요소
+    // Priority Scheduling - pintos 1
+    int original_priority; // 원래의 priority 값
+    struct lock *waiting_lock; // thread가 현재 받으려고 대기하고 있는 lock
+    struct list donations; // 자신에게 priority를 준 thread list
+    struct list_elem donation_elem; // donation_list의 요소
 
-   // Advanced Scheduler - pintos 1
-   int nice; // thread의 nice 값
-   int recent_cpu; // thread의 최근 CPU 사용량
+    // Advanced Scheduler - pintos 1
+    int nice; // thread의 nice 값
+    int recent_cpu; // thread의 최근 CPU 사용량
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
