@@ -29,7 +29,11 @@ halt (void)
 void
 exit (int status)
 {
+  const char *process_name = thread_name ();
+  int exit_code = status;
 
+  printf ("%s: exit(%d)\n", process_name, exit_code);
+  thread_exit ();
 }
 
 pid_t
