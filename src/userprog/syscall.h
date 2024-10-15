@@ -1,6 +1,8 @@
 #ifndef USERPROG_SYSCALL_H
 #define USERPROG_SYSCALL_H
 
+#include <stdbool.h>
+
 // System Calls - pintos 2
 typedef int pid_t; // Process identifier type
 // end
