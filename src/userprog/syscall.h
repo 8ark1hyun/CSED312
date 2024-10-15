@@ -1,6 +1,10 @@
 #ifndef USERPROG_SYSCALL_H
 #define USERPROG_SYSCALL_H
 
+// System Calls - pintos 2
+typedef int pid_t; // Process identifier type
+// end
+
 void syscall_init (void);
 
 // System Calls - pintos 2
