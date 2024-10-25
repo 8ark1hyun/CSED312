@@ -29,10 +29,12 @@ halt (void)
 void
 exit (int status)
 {
+  // Process Termination Messages - pintos 2
   const char *process_name = thread_name ();
   int exit_code = status;
 
   printf ("%s: exit(%d)\n", process_name, exit_code);
+  // end
   thread_exit ();
 }
 
