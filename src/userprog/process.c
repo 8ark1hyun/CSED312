@@ -31,6 +31,10 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
+  // Argument Passing - pintos 2
+  char *fn_save; // parsing 후 filename을 제외한 string을 저장하는 변수
+  // end
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -38,8 +42,13 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  // Argument Passing - pintos 2
+  strtok_r (file_name, " ", &fn_save); // space를 기준으로 filename parsing
+  // end
+
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
