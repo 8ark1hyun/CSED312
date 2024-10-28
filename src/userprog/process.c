@@ -34,6 +34,7 @@ process_execute (const char *file_name)
 
   // Argument Passing - pintos 2
   char *fn_save; // parsing 후 filename을 제외한 string을 저장하는 변수
+  char *filename;
   // end
 
   /* Make a copy of FILE_NAME.
@@ -44,11 +45,11 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   // Argument Passing - pintos 2
-  strtok_r (file_name, " ", &fn_save); // space를 기준으로 filename parsing
+  filename = strtok_r (fn_copy, " ", &fn_save); // space를 기준으로 filename parsing
   // end
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (filename, PRI_DEFAULT, start_process, fn_copy);
   
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
@@ -66,7 +67,7 @@ start_process (void *file_name_)
 
   // Argument Passing - pintos 2
   char *fn_save; // parsing 후 filename을 제외한 string을 저장하는 변수
-  strtok_r (file_name, " ", &fn_save); // space를 기준으로 filename parsing
+  file_name = strtok_r (file_name, " ", &fn_save); // space를 기준으로 filename parsing
   // end
 
   /* Initialize interrupt frame and load executable. */
