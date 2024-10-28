@@ -8,6 +8,7 @@
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -63,6 +64,11 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  // Argument Passing - pintos 2
+  char *fn_save; // parsing 후 filename을 제외한 string을 저장하는 변수
+  strtok_r (file_name, " ", &fn_save); // space를 기준으로 filename parsing
+  // end
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -70,10 +76,18 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  // Argument Passing - pintos 2
+  if (success)
+  {
+    pass_argument (file_name_, &if_.esp);
+    thread_current ()->is_load = true;
+  }
+  // end
+
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
-    thread_exit ();
+    exit (-1);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -140,7 +154,7 @@ process_activate (void)
      interrupts. */
   tss_update ();
 }
-
+
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */
 
@@ -324,7 +338,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file_close (file);
   return success;
 }
-
+
 /* load() helpers. */
 
 static bool install_page (void *upage, void *kpage, bool writable);
@@ -472,3 +486,59 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+// Argument Passing - pintos 2
+void
+pass_argument (const char *file_name, void **esp)
+{
+  char *fn_copy;
+  char *fn_save;
+
+  char **argv;
+  char *argv_addr;
+  char *argv_token;
+
+  int index = 0;
+  int length;
+
+  fn_copy = palloc_get_page (0);
+  strlcpy (fn_copy, file_name, PGSIZE);
+
+  argv_token = strtok_r (file_name, " ", &fn_save);
+  argv[index] = argv_token;
+
+  while (argv_token != NULL)
+  {
+    argv_token = strtok_r (NULL, " ", &fn_save);
+    index++;
+    argv[index] = argv_token;
+  }
+
+  for (int i = index - 1; i >= 0; i--)
+  {
+    length = strlen (argv[i]) + 1;
+    *esp -= length;
+    strlcpy (*esp, argv[i], length);
+    argv_addr[i] = *esp;
+  }
+
+  *esp -= ((uint32_t)*esp) % 4;
+  
+  *esp -= 4;
+  **(uint32_t **)esp = 0;
+
+  for (int i = index - 1; i >= 0; i--)
+  {
+    *esp -= 4;
+    **(uint32_t **)esp = argv_addr[i];
+  }
+
+  *esp -= 4;
+  **(uint32_t **)esp = index;
+
+  *esp -= 4;
+  **(uint32_t **)esp = 0;
+
+  palloc_free_page (fn_copy);
+}
+// end

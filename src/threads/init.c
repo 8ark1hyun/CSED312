@@ -53,7 +53,7 @@ static const char *scratch_bdev_name;
 static const char *swap_bdev_name;
 #endif
 #endif /* FILESYS */
-
+ 
 /* -ul: Maximum number of pages to put into palloc's user pool. */
 static size_t user_page_limit = SIZE_MAX;
 
@@ -136,7 +136,7 @@ main (void)
   shutdown ();
   thread_exit ();
 }
-
+
 /* Clear the "BSS", a segment that should be initialized to
    zeros.  It isn't actually stored on disk or zeroed by the
    kernel loader, so we have to zero it ourselves.

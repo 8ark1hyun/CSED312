@@ -30,12 +30,13 @@ void
 exit (int status)
 {
   // Process Termination Messages - pintos 2
-  const char *process_name = thread_name ();
-  int exit_code = status;
+  const char *process_name = thread_name (); // process's name
+  int exit_code = status; // exit code
+  thread_current ()->exit_status = status; // exit status 저장
 
-  printf ("%s: exit(%d)\n", process_name, exit_code);
-  // end
+  printf ("%s: exit(%d)\n", process_name, exit_code); // message 출력
   thread_exit ();
+  // end
 }
 
 pid_t
