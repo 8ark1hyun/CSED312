@@ -104,4 +104,10 @@ close (int fd)
 {
 
 }
+
+void
+check_valid_addr (void *addr)
+{
+  //if ((addr == NULL) || (is_user_vaddr (addr) == false) || ())
+}
 // end

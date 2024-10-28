@@ -33,6 +33,7 @@ process_execute (const char *file_name)
   tid_t tid;
 
   // Argument Passing - pintos 2
+  char *fn_copy_;
   char *fn_save; // parsing 후 filename을 제외한 string을 저장하는 변수
   char *filename;
   // end
@@ -45,11 +46,15 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   // Argument Passing - pintos 2
-  filename = strtok_r (fn_copy, " ", &fn_save); // space를 기준으로 filename parsing
+  fn_copy_ = palloc_get_page (0);
+  strlcpy (fn_copy_, file_name, PGSIZE);
+
+  filename = strtok_r (fn_copy_, " ", &fn_save); // space를 기준으로 filename parsing
   // end
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (filename, PRI_DEFAULT, start_process, fn_copy);
+  palloc_free_page (fn_copy_);
   
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
@@ -66,8 +71,14 @@ start_process (void *file_name_)
   bool success;
 
   // Argument Passing - pintos 2
+  char *fn_copy;
   char *fn_save; // parsing 후 filename을 제외한 string을 저장하는 변수
-  file_name = strtok_r (file_name, " ", &fn_save); // space를 기준으로 filename parsing
+  char *filename;
+
+  fn_copy = palloc_get_page (0);
+  strlcpy (fn_copy, file_name, PGSIZE);
+
+  filename = strtok_r (fn_copy, " ", &fn_save); // space를 기준으로 filename parsing
   // end
 
   /* Initialize interrupt frame and load executable. */
@@ -75,14 +86,16 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (filename, &if_.eip, &if_.esp);
 
   // Argument Passing - pintos 2
   if (success)
   {
-    pass_argument (file_name_, &if_.esp);
+    pass_argument (file_name, &if_.esp);
     thread_current ()->is_load = true;
   }
+  hex_dump (if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
+  palloc_free_page (fn_copy);
   // end
 
   /* If load failed, quit. */
@@ -112,6 +125,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  while (1) {}
   return -1;
 }
 
@@ -490,22 +504,23 @@ install_page (void *upage, void *kpage, bool writable)
 
 // Argument Passing - pintos 2
 void
-pass_argument (const char *file_name, void **esp)
+pass_argument (char *file_name, void **esp)
 {
   char *fn_copy;
   char *fn_save;
 
-  char **argv;
-  char *argv_addr;
+  char **argv = palloc_get_page (0);
+  char **argv_addr = palloc_get_page (0);
   char *argv_token;
 
+  int i;
   int index = 0;
   int length;
 
   fn_copy = palloc_get_page (0);
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  argv_token = strtok_r (file_name, " ", &fn_save);
+  argv_token = strtok_r (fn_copy, " ", &fn_save);
   argv[index] = argv_token;
 
   while (argv_token != NULL)
@@ -515,7 +530,14 @@ pass_argument (const char *file_name, void **esp)
     argv[index] = argv_token;
   }
 
-  for (int i = index - 1; i >= 0; i--)
+  /*for (argv_token = strtok_r (fn_copy, " ", &fn_save); argv_token != NULL; argv_token = strtok_r (NULL, " ", &fn_save))
+  {
+    argv[index] = argv_token;
+    index++;
+  }
+  argv[index] = NULL;*/
+
+  for (i = index - 1; i >= 0; i--)
   {
     length = strlen (argv[i]) + 1;
     *esp -= length;
@@ -528,11 +550,14 @@ pass_argument (const char *file_name, void **esp)
   *esp -= 4;
   **(uint32_t **)esp = 0;
 
-  for (int i = index - 1; i >= 0; i--)
+  for (i = index - 1; i >= 0; i--)
   {
     *esp -= 4;
     **(uint32_t **)esp = argv_addr[i];
   }
+
+  *esp -= 4;
+  **(uint32_t **)esp = (uint32_t)(*esp + 4);
 
   *esp -= 4;
   **(uint32_t **)esp = index;
@@ -540,6 +565,8 @@ pass_argument (const char *file_name, void **esp)
   *esp -= 4;
   **(uint32_t **)esp = 0;
 
+  palloc_free_page (argv);
+  palloc_free_page (argv_addr);
   palloc_free_page (fn_copy);
 }
 // end

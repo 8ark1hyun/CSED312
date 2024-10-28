@@ -718,7 +718,14 @@ check_priority_switch (void)
 
       if (current->priority < highest_priority_thread->priority) // 현재 thread의 priority가 ready_list의 가장 앞에 있는 thread보다 낮은 경우
       {
-          thread_yield (); // CPU 양보
+          if (intr_context ())
+          {
+            intr_yield_on_return ();
+          }
+          else
+          {
+            thread_yield (); // CPU 양보
+          }
       }
   }
 }
