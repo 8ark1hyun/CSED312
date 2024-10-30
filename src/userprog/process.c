@@ -530,13 +530,6 @@ pass_argument (char *file_name, void **esp)
     argv[index] = argv_token;
   }
 
-  /*for (argv_token = strtok_r (fn_copy, " ", &fn_save); argv_token != NULL; argv_token = strtok_r (NULL, " ", &fn_save))
-  {
-    argv[index] = argv_token;
-    index++;
-  }
-  argv[index] = NULL;*/
-
   for (i = index - 1; i >= 0; i--)
   {
     length = strlen (argv[i]) + 1;
