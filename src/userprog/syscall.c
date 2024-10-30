@@ -20,7 +20,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  // 주소 유효성 확인
+  check_valid_addr ((void *)(f->esp)); // 주소 유효성 확인
 
   int argv[3];
   switch (*(uint32_t *)(f->esp))
@@ -82,9 +82,20 @@ syscall_handler (struct intr_frame *f UNUSED)
 }
 
 void
-get_argument (void *esp, int *arg, int index)
+check_valid_addr (void *addr)
 {
+  //if ((addr == NULL) || (is_user_vaddr (addr) == false) || ())
+}
 
+void
+get_argument (void *esp, int *argv, int num)
+{
+  int i;
+  for (i = 0; i < num; i++)
+  {
+    check_valid_addr (esp + 4 * i);
+    argv[i] = *(int *)(esp + 4 * i);
+  }
 }
 
 void
@@ -170,11 +181,5 @@ void
 close (int fd)
 {
 
-}
-
-void
-check_valid_addr (void *addr)
-{
-  //if ((addr == NULL) || (is_user_vaddr (addr) == false) || ())
 }
 // end
