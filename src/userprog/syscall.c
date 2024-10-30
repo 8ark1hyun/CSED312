@@ -8,6 +8,7 @@
 #include "userprog/pagedir.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+#include "devices/shutdown.h"
 
 static void syscall_handler (struct intr_frame *);
 
