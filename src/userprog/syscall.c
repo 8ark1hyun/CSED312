@@ -5,6 +5,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "userprog/process.h"
+#include "userprog/pagedir.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 
@@ -84,7 +85,10 @@ syscall_handler (struct intr_frame *f UNUSED)
 void
 check_valid_addr (void *addr)
 {
-  //if ((addr == NULL) || (is_user_vaddr (addr) == false) || ())
+  if ((addr == NULL) || (is_user_vaddr (addr) == false) || (pagedir_get_page (thread_current ()->pagedir, addr) == NULL))
+  {
+    exit (-1);
+  }
 }
 
 void
