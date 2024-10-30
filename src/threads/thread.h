@@ -111,8 +111,19 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
 
     int exit_status;
-
     bool is_load;
+    
+    struct thread *parent;
+    struct list child_list;
+    struct list_elem child_elem;
+
+    struct semaphore sema_load;
+    struct semaphore sema_exit;
+    struct semaphore sema_wait;
+
+    struct file **fd_table;
+    struct file *current_file;
+    int fd_max; 
 #endif
 
     /* Owned by thread.c. */
