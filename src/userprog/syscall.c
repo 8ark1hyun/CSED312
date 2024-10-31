@@ -187,6 +187,13 @@ open (const char *file)
     return -1;
   }
 
+  // Denying Writes to Executables - pintos 2
+  if (!strcmp (thread_current ()->name, file))
+  {
+    file_deny_write (f);
+  }
+  // end
+
   t = thread_current ();
   fd = t->fd_max;
 
