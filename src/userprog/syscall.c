@@ -266,7 +266,7 @@ read (int fd, void *buffer, unsigned size)
       bytes++;
     }
   }
-  else if ((fd > 0) && (fd < thread_current ()->fd_max))
+  else if ((fd > 1) && (fd < thread_current ()->fd_max))
   {
     f = thread_current ()->fd_table[fd];
     lock_acquire (&file_lock);
