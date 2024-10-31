@@ -222,9 +222,6 @@ filesize (int fd)
     lock_release (&file_lock);
     return -1;
   }
-
-
-
 }
 
 int
@@ -242,13 +239,36 @@ write (int fd, const void *buffer, unsigned size)
 void
 seek (int fd, unsigned position)
 {
+  struct file *f;
 
+  lock_acquire (&file_lock);
+
+  if (fd < thread_current ()->fd_max)
+  {
+    f = thread_current ()->fd_table[fd];
+    file_seek (f, position);
+    lock_release (&file_lock);
+  }
+  else
+  {
+    lock_release (&file_lock);
+  }
 }
 
 unsigned
 tell (int fd)
 {
+  struct file *f;
 
+  if (fd < thread_current ()->fd_max)
+  {
+    f = thread_current ()->fd_table[fd];
+    return file_tell (f);
+  }
+  else
+  {
+    return -1;
+  }
 }
 
 void
