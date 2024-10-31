@@ -137,7 +137,7 @@ exec (const char *cmd_line)
   }  
 
   child = get_child (pid);
-  sema_down (&(child->sema_load));
+  sema_down (&child->sema_load);
 
   if (child->is_load)
   {
