@@ -197,7 +197,7 @@ open (const char *file)
   t = thread_current ();
   fd = t->fd_max;
 
-  t->fd_tablep[fd] = f;
+  t->fd_table[fd] = f;
   t->fd_max++;
 
   lock_release (&file_lock);
@@ -207,6 +207,23 @@ open (const char *file)
 int
 filesize (int fd)
 {
+  struct file *f;
+  
+  lock_acquire (&file_lock);
+
+  if (fd < thread_current ()->fd_max)
+  {
+    f = thread_current ()->fd_table[fd];
+    lock_release (&file_lock);
+    return file_length (f);
+  }
+  else
+  {
+    lock_release (&file_lock);
+    return -1;
+  }
+
+
 
 }
 
