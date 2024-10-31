@@ -9,6 +9,7 @@
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "devices/shutdown.h"
+#include "devices/input.h"
 
 static void syscall_handler (struct intr_frame *);
 struct lock file_lock;
@@ -227,13 +228,65 @@ filesize (int fd)
 int
 read (int fd, void *buffer, unsigned size)
 {
-  
+  struct file* f;
+  int bytes;
+  int i;
+
+  if (fd == 0)
+  {
+    for (i = 0; i < size; i++)
+    {
+      ((char *)buffer)[i] = input_getc ();
+      if (((char *)buffer)[i] == '\0')
+      {
+        break;
+      }
+      bytes++;
+    }
+  }
+  else if ((fd > 0) && (fd < thread_current ()->fd_max))
+  {
+    f = thread_current ()->fd_table[fd];
+    lock_acquire (&file_lock);
+    bytes = file_read (f, buffer, size);
+    lock_release (&file_lock);
+  }
+  else
+  {
+    return -1;
+  }
+
+  return bytes;
 }
 
 int
 write (int fd, const void *buffer, unsigned size)
 {
+  struct file* f;
+  int bytes;
+  int i;
 
+  if (fd == 1)
+  {
+    lock_acquire (&file_lock);
+    putbuf (buffer, size);
+    lock_release (&file_lock);
+
+    return bytes;
+  }
+  else if ((fd > 1) && (fd < thread_current ()->fd_max))
+  {
+    f = thread_current ()->fd_table[fd];
+    lock_acquire (&file_lock);
+    bytes = file_write (f, buffer, size);
+    lock_release (&file_lock);
+  }
+  else
+  {
+    return -1;
+  }
+
+  return bytes;
 }
 
 void
