@@ -274,6 +274,13 @@ tell (int fd)
 void
 close (int fd)
 {
+  struct file *f;
 
+  if (fd < thread_current ()->fd_max)
+  {
+    f = thread_current ()->fd_table[fd];
+    file_close (f);
+    thread_current ()->fd_table[fd] == NULL;
+  }
 }
 // end
