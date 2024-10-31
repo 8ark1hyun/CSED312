@@ -95,6 +95,7 @@ start_process (void *file_name_)
     thread_current ()->is_load = true;
   }
   // hex_dump (if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
+  sema_up (&thread_current ()->sema_load);
   palloc_free_page (fn_copy);
   // end
 
@@ -138,7 +139,6 @@ process_wait (tid_t child_tid UNUSED)
   status = child->exit_status;
   list_remove (&child->child_elem);
   palloc_free_page (child);
-  sema_up (&child->sema_exit);
 
   return status;
 }

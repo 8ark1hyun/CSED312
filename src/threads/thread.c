@@ -234,6 +234,7 @@ thread_create (const char *name, int priority,
   t->fd_table = palloc_get_page (0);
   if (t->fd_table == NULL)
   {
+    palloc_free_page (t->fd_table);
     return TID_ERROR;
   }
   t->fd_max = 2;
@@ -755,7 +756,7 @@ check_priority_switch (void)
       struct thread *current = thread_current (); // 현재 실행 중인 thread
       struct thread *highest_priority_thread = list_entry (list_front (&ready_list), struct thread, elem); // ready_list의 가장 앞에 있는 thread, 즉 ready 상태의 thread 중 priority가 가장 높은 thread
 
-      if (!intr_context () && current->priority < highest_priority_thread->priority) // 현재 thread의 priority가 ready_list의 가장 앞에 있는 thread보다 낮은 경우
+      if ((!intr_context ()) && (current->priority < highest_priority_thread->priority)) // 현재 thread의 priority가 ready_list의 가장 앞에 있는 thread보다 낮은 경우
       {
         thread_yield (); // CPU 양보
       }

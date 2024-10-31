@@ -19,6 +19,7 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init (&file_lock);
 }
 
 // System Calls - pintos 2
@@ -26,6 +27,13 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   check_valid_addr ((void *)(f->esp));
+
+  int i;
+
+  for (i = 0; i < 3; i++)
+  {
+    check_valid_addr (f->esp + 4 * i);
+  }
 
   int argv[3];
   switch (*(uint32_t *)(f->esp))
@@ -131,6 +139,8 @@ exec (const char *cmd_line)
   struct thread *child;
   pid_t pid;
 
+  check_valid_addr (cmd_line);
+
   pid = process_execute (cmd_line);
   if (pid == -1)
   {
@@ -159,6 +169,8 @@ wait (pid_t pid)
 bool
 create (const char *file, unsigned initial_size)
 {
+  check_valid_addr ((void *)file);
+
   if (file == NULL)
   {
     exit (-1);
@@ -170,6 +182,8 @@ create (const char *file, unsigned initial_size)
 bool
 remove (const char *file)
 {
+  check_valid_addr ((void *)file);
+
   return filesys_remove (file);
 }
 
@@ -179,6 +193,8 @@ open (const char *file)
   int fd;
   struct file *f;
   struct thread *t;
+
+  check_valid_addr ((void *)file);
 
   lock_acquire (&file_lock);
   f = filesys_open (file);
@@ -233,6 +249,11 @@ read (int fd, void *buffer, unsigned size)
   int bytes = 0;
   unsigned int i;
 
+  for (i = 0; i < size; i++)
+  {
+    check_valid_addr (buffer + i);
+  }
+
   if (fd == 0)
   {
     for (i = 0; i < size; i++)
@@ -265,6 +286,12 @@ write (int fd, const void *buffer, unsigned size)
 {
   struct file* f;
   int bytes = 0;
+  unsigned i;
+
+  for (i = 0; i < size; i++)
+  {
+    check_valid_addr (buffer + i);
+  }
 
   if (fd == 1)
   {
