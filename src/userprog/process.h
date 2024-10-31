@@ -9,5 +9,6 @@ void process_exit (void);
 void process_activate (void);
 
 void pass_argument (char *file_name, void **esp);
+struct thread *get_child (pid_t pid)
 
 #endif /* userprog/process.h */

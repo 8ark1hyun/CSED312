@@ -568,3 +568,25 @@ pass_argument (char *file_name, void **esp)
   palloc_free_page (fn_copy);
 }
 // end
+
+// System Calls - pintos 2
+struct thread*
+get_child (pid_t pid)
+{
+  struct thread *t;
+  struct list *child_list = &(thread_current ()->child_list);
+  struct list_elem *elem;
+
+  for(elem = list_begin (child_list); elem != list_end (child_list); elem = list_next (elem))
+  {
+    t = list_entry (elem, struct thread, child_elem)
+    
+    if (t->tid == pid)
+    {
+      return t;
+    }
+  }
+
+  return NULL;
+}
+// end

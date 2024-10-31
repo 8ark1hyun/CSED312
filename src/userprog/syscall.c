@@ -22,7 +22,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  check_valid_addr ((void *)(f->esp)); // 주소 유효성 확인
+  check_valid_addr ((void *)(f->esp));
 
   int argv[3];
   switch (*(uint32_t *)(f->esp))
@@ -125,7 +125,26 @@ exit (int status)
 pid_t
 exec (const char *cmd_line)
 {
+  struct thread *child;
+  pid_t pid;
 
+  pid = process_execute (cmd_line);
+  if (pid == -1)
+  {
+    return -1;
+  }  
+
+  child = 
+  sema_down (&(child->sema_load));
+
+  if (child->is_load)
+  {
+    return pid;
+  }
+  else
+  {
+    return -1;
+  }
 }
 
 int
