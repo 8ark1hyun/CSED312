@@ -221,7 +221,7 @@ thread_create (const char *name, int priority,
   // end
 
 #ifdef USERPROG
-  t->exit_state = -1;
+  t->exit_status = -1;
   t->is_load = false;
 
   t->parent = thread_current ();
@@ -328,7 +328,23 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
+  // System Calls - pintos 2
   process_exit ();
+
+  struct thread *current_thread = thread_current ();
+  struct thread *t;
+  struct list_elem *elem;
+  
+  sema_up (&current_thread->sema_wait);
+
+  for (elem = list_begin (&current_thread->child_list); elem != list_end (&current_thread->child_list); elem = next_elem (elem))
+  {
+    t = list_entry (elem, struct thread, child_elem);
+    sema_up (&t->sema_exit);
+  }
+
+  sema_down (&current_thread->sema_exit);
+  // end
 #endif
 
   /* Remove thread from all threads list, set our status to dying,

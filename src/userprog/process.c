@@ -125,8 +125,22 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while (1) {}
-  return -1;
+  int status;
+
+  struct thread *child = get_child (child_tid);
+
+  if (child == NULL)
+  {
+    return -1;
+  }
+
+  sema_down (&child->sema_wait);
+  status = child->exit_status;
+  list_remove (&child->child_elem);
+  palloc_free_page (child);
+  sema_up (&child->sema_exit);
+
+  return status;
 }
 
 /* Free the current process's resources. */
@@ -135,6 +149,18 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  // System Calls - pintos 2
+  int i;
+
+  for (i = 2; i < cur->fd_max; i++)
+  {
+    close (i);
+  }
+  palloc_free_page (cur->fd_table);
+
+  file_close (cur->current_file);
+  // end
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
