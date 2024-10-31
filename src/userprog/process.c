@@ -94,7 +94,7 @@ start_process (void *file_name_)
     pass_argument (file_name, &if_.esp);
     thread_current ()->is_load = true;
   }
-  hex_dump (if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
+  // hex_dump (if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   palloc_free_page (fn_copy);
   // end
 

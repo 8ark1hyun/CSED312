@@ -220,6 +220,25 @@ thread_create (const char *name, int priority,
   check_priority_switch(); // priority switch 확인
   // end
 
+#ifdef USERPROG
+  t->exit_state = -1;
+  t->is_load = false;
+
+  t->parent = thread_current ();
+  list_push_back (&t->parent->child_list, &t->child_elem);
+
+  sema_init (&t->sema_load, 0);
+  sema_init (&t->sema_exit, 0);
+  sema_init (&t->sema_wait, 0);
+
+  t->fd_table = palloc_get_page (0);
+  if (t->fd_table == NULL)
+  {
+    return TID_ERROR;
+  }
+  t->fd_max = 2;
+#endif
+
   return tid;
 }
 
@@ -531,6 +550,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->nice = 0; // nice 값 초기화
   t->recent_cpu = 0; // recent_cpu 값 초기화
   // end
+
+#ifdef USERPROG
+  list_init (&t->child_list);
+#endif
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
