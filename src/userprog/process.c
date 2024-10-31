@@ -605,7 +605,7 @@ get_child (pid_t pid)
 
   for(elem = list_begin (child_list); elem != list_end (child_list); elem = list_next (elem))
   {
-    t = list_entry (elem, struct thread, child_elem)
+    t = list_entry (elem, struct thread, child_elem);
     
     if (t->tid == pid)
     {

@@ -10,6 +10,7 @@
 #include "filesys/filesys.h"
 #include "devices/shutdown.h"
 #include "devices/input.h"
+#include <string.h>
 
 static void syscall_handler (struct intr_frame *);
 struct lock file_lock;
@@ -229,8 +230,8 @@ int
 read (int fd, void *buffer, unsigned size)
 {
   struct file* f;
-  int bytes;
-  int i;
+  int bytes = 0;
+  unsigned int i;
 
   if (fd == 0)
   {
@@ -263,8 +264,7 @@ int
 write (int fd, const void *buffer, unsigned size)
 {
   struct file* f;
-  int bytes;
-  int i;
+  int bytes = 0;
 
   if (fd == 1)
   {
@@ -333,7 +333,7 @@ close (int fd)
   {
     f = thread_current ()->fd_table[fd];
     file_close (f);
-    thread_current ()->fd_table[fd] == NULL;
+    thread_current ()->fd_table[fd] = NULL;
   }
 }
 // end
