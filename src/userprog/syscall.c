@@ -11,6 +11,7 @@
 #include "devices/shutdown.h"
 
 static void syscall_handler (struct intr_frame *);
+struct lock file_lock;
 
 void
 syscall_init (void) 
@@ -173,7 +174,27 @@ remove (const char *file)
 int
 open (const char *file)
 {
+  int fd;
+  struct file *f;
+  struct thread *t;
 
+  lock_acquire (&file_lock);
+  f = filesys_open (file);
+
+  if (f == NULL)
+  {
+    lock_release (&file_lock);
+    return -1;
+  }
+
+  t = thread_current ();
+  fd = t->fd_max;
+
+  t->fd_tablep[fd] = f;
+  t->fd_max++;
+
+  lock_release (&file_lock);
+  return fd;
 }
 
 int
