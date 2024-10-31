@@ -337,7 +337,7 @@ thread_exit (void)
   
   sema_up (&current_thread->sema_wait);
 
-  for (elem = list_begin (&current_thread->child_list); elem != list_end (&current_thread->child_list); elem = next_elem (elem))
+  for (elem = list_begin (&current_thread->child_list); elem != list_end (&current_thread->child_list); elem = list_next (elem))
   {
     t = list_entry (elem, struct thread, child_elem);
     sema_up (&t->sema_exit);
