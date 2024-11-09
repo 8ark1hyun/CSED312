@@ -10,7 +10,7 @@ typedef int pid_t; // Process identifier type
 void syscall_init (void);
 
 // System Calls - pintos 2
-void check_valid_addr (void *addr);
+void check_valid_addr (const void *addr);
 void get_argument (void *esp, int *argv, int num);
 void halt (void);
 void exit (int status);

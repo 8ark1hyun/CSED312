@@ -404,7 +404,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 // Priority Scheduling - pintos 1
 // 두 개의 semaphore->waiters list에서 각각 가장 앞에 있는 thread의 priority 비교
 bool
-compare_sema_priority (const struct list_elem *temp_1, const struct list_elem *temp_2)
+compare_sema_priority (const struct list_elem *temp_1, const struct list_elem *temp_2, void *aux UNUSED)
 {
 	struct semaphore_elem *temp_1_sema = list_entry (temp_1, struct semaphore_elem, elem);
 	struct semaphore_elem *temp_2_sema = list_entry (temp_2, struct semaphore_elem, elem);

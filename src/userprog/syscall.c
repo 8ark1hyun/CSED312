@@ -95,7 +95,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 }
 
 void
-check_valid_addr (void *addr)
+check_valid_addr (const void *addr)
 {
   if ((addr == NULL) || (is_user_vaddr (addr) == false) || (pagedir_get_page (thread_current ()->pagedir, addr) == NULL))
   {

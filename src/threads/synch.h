@@ -50,7 +50,7 @@ void cond_broadcast (struct condition *, struct lock *);
 
 // Priority Scheduling - pintos 1
 // sema->waiters list에서 가장 높은 priority를 가진 thread의 priority 반환
-bool compare_sema_priority (const struct list_elem *temp1, const struct list_elem *temp2);
+bool compare_sema_priority (const struct list_elem *temp1, const struct list_elem *temp2, void *aux);
 // end
 
 #endif /* threads/synch.h */

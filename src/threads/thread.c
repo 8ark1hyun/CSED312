@@ -735,14 +735,14 @@ thread_awake (int64_t ticks)
 // Priority Scheduling - pintos 1
 // thread 간의 priority 비교
 bool
-compare_priority (struct list_elem *temp_1, struct list_elem *temp_2)
+compare_priority (const struct list_elem *temp_1, const struct list_elem *temp_2, void *aux UNUSED)
 {
   return list_entry (temp_1, struct thread, elem)->priority > list_entry (temp_2, struct thread, elem)->priority;
 }
 
 // donation_list priority 비교
 bool
-compare_donate_priority (struct list_elem *temp_1, struct list_elem *temp_2) 
+compare_donate_priority (const struct list_elem *temp_1, const struct list_elem *temp_2, void *aux UNUSED) 
 {
   return list_entry (temp_1, struct thread, donation_elem)->priority > list_entry (temp_2, struct thread, donation_elem)->priority;
 }

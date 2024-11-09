@@ -172,8 +172,8 @@ void thread_sleep (int64_t ticks);
 void thread_awake (int64_t ticks);
 
 // Priority Scheduling - pintos 1
-bool compare_priority (struct list_elem *temp_1, struct list_elem *temp_2);
-bool compare_donate_priority (struct list_elem *temp_1, struct list_elem *temp_2);
+bool compare_priority (const struct list_elem *temp_1, const struct list_elem *temp_2, void *aux);
+bool compare_donate_priority (const struct list_elem *temp_1, const struct list_elem *temp_2, void *aux);
 void check_priority_switch (void);
 void apply_priority_donation (void);
 void clear_donations_for_lock (struct lock *lock);
