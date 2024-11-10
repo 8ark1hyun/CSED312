@@ -54,7 +54,7 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (filename, PRI_DEFAULT, start_process, fn_copy);
-  palloc_free_page (fn_copy_);
+  palloc_free_page (fn_copy_); // memory 할당 해제
   
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
@@ -89,20 +89,21 @@ start_process (void *file_name_)
   success = load (filename, &if_.eip, &if_.esp);
 
   // Argument Passing - pintos 2
-  if (success)
+  if (success) // load 성공 시
   {
-    pass_argument (file_name, &if_.esp);
-    thread_current ()->is_load = true;
+    pass_argument (file_name, &if_.esp); // argument push
+    thread_current ()->is_load = true; // load 성공 여부 기록
   }
-  // hex_dump (if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
-  sema_up (&thread_current ()->sema_load);
-  palloc_free_page (fn_copy);
+  sema_up (&thread_current ()->sema_load); // sema_load를 up하여 load 완료 알림
+  palloc_free_page (fn_copy); // memory 할당 해제
   // end
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
-    exit (-1);
+  if (!success)
+    // Process Termination Messages - pintos 2
+    exit (-1); // thread_exit () -> exit (-1)
+    // end
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -124,23 +125,23 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
   int status;
 
-  struct thread *child = get_child (child_tid);
+  struct thread *child = get_child (child_tid); // 전달 받은 id에 대응되는 child process
 
   if (child == NULL)
   {
-    return -1;
+    return -1; // child가 없는 경우 -1 반환
   }
 
-  sema_down (&child->sema_wait);
-  status = child->exit_status;
-  list_remove (&child->child_elem);
-  palloc_free_page (child);
+  sema_down (&child->sema_wait); // child가 종료될 때까지 대기
+  status = child->exit_status; // exit status 저장
+  list_remove (&child->child_elem); // child 목록에서 child 제거
+  sema_up (&child->sema_exit); // child의 sema_exit을 up하여 exit status를 저장했음을 알림
 
-  return status;
+  return status; // exit status 반환
 }
 
 /* Free the current process's resources. */
@@ -551,9 +552,10 @@ pass_argument (char *file_name, void **esp)
   fn_copy = palloc_get_page (0);
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  argv_token = strtok_r (fn_copy, " ", &fn_save);
+  argv_token = strtok_r (fn_copy, " ", &fn_save); // file 이름
   argv[index] = argv_token;
 
+  // argument를 parsing하여 argv 배열에 저장
   while (argv_token != NULL)
   {
     argv_token = strtok_r (NULL, " ", &fn_save);
@@ -561,19 +563,21 @@ pass_argument (char *file_name, void **esp)
     argv[index] = argv_token;
   }
 
+  // 가장 마지막 argument부터 file 이름까지 순서대로 stack에 push (right-to-left)
   for (i = index - 1; i >= 0; i--)
   {
     length = strlen (argv[i]) + 1;
     *esp -= length;
     strlcpy (*esp, argv[i], length);
-    argv_addr[i] = *esp;
+    argv_addr[i] = *esp; // push한 stack의 adddress를 argv_addr 배열에 저장
   }
 
-  *esp -= ((uint32_t)*esp) % 4;
+  *esp -= ((uint32_t)*esp) % 4; // word-align
   
   *esp -= 4;
-  **(uint32_t **)esp = 0;
+  **(uint32_t **)esp = 0; // NULL pointer
 
+  // push한 stack의 address를 순서대로 stack에 push (right-to-left)
   for (i = index - 1; i >= 0; i--)
   {
     *esp -= 4;
@@ -581,13 +585,13 @@ pass_argument (char *file_name, void **esp)
   }
 
   *esp -= 4;
-  **(uint32_t **)esp = (uint32_t)(*esp + 4);
+  **(uint32_t **)esp = (uint32_t)(*esp + 4); // argv 배열의 address
 
   *esp -= 4;
-  **(uint32_t **)esp = index;
+  **(uint32_t **)esp = index; // argc
 
   *esp -= 4;
-  **(uint32_t **)esp = 0;
+  **(uint32_t **)esp = 0; // return address
 
   palloc_free_page (argv);
   palloc_free_page (argv_addr);
@@ -603,16 +607,17 @@ get_child (pid_t pid)
   struct list *child_list = &(thread_current ()->child_list);
   struct list_elem *elem;
 
+  // child 목록을 순회하면서 child process 탐색
   for(elem = list_begin (child_list); elem != list_end (child_list); elem = list_next (elem))
   {
     t = list_entry (elem, struct thread, child_elem);
     
     if (t->tid == pid)
     {
-      return t;
+      return t; // 전달 받은 id에 대응되는 child process가 있는 경우 해당 process(thread) 반환
     }
   }
 
-  return NULL;
+  return NULL; // 없는 경우 NULL 반환
 }
 // end

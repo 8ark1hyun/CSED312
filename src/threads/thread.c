@@ -330,21 +330,21 @@ thread_exit (void)
 
 #ifdef USERPROG
   // System Calls - pintos 2
-  process_exit ();
+  process_exit (); // process 종료
 
   struct thread *current_thread = thread_current ();
   struct thread *t;
   struct list_elem *elem;
   
-  sema_up (&current_thread->sema_wait);
+  sema_up (&current_thread->sema_wait); // 종료한 thread(process)의 sema_wait를 up하여 exit 완료 알림
 
   for (elem = list_begin (&current_thread->child_list); elem != list_end (&current_thread->child_list); elem = list_next (elem))
   {
     t = list_entry (elem, struct thread, child_elem);
-    sema_up (&t->sema_exit);
+    sema_up (&t->sema_exit); // 종료한 thread(process)의 child의 sema_exit을 up하여 orphan이 되지 않도록 보장
   }
 
-  sema_down (&current_thread->sema_exit);
+  sema_down (&current_thread->sema_exit); // parent가 exit status를 저장할 때까지 대기
   // end
 #endif
 

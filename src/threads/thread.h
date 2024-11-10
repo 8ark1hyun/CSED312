@@ -109,23 +109,23 @@ struct thread
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
-    uint32_t *pagedir;                  /* Page directory. */
+    uint32_t *pagedir;                   /* Page directory. */
 
-    int exit_status;
-    bool is_load;
+    int exit_status;                     // exit 상태
+    bool is_load;                        // load 상태를 나타내는 flag
     
-    struct thread *parent;
-    struct list child_list;
-    struct list_elem child_elem;
+    struct thread *parent;               // parent thread에 대한 포인터
+    struct list child_list;              // child thread 목록
+    struct list_elem child_elem;         // child 목록의 요소로서의 thread
 
-    struct semaphore sema_load;
-    struct semaphore sema_exit;
-    struct semaphore sema_wait;
+    struct semaphore sema_load;          // load 완료 시 사용되는 semaphore
+    struct semaphore sema_exit;          // child 종료 시 사용되는 semaphore
+    struct semaphore sema_wait;          // parent가 대기할 때 사용되는 semaphore
 
-    struct file **fd_table;
-    struct file *current_file;
-    int fd_max; 
-#endif
+    struct file **fd_table;              // file descriptor table
+    struct file *current_file;           // 현재 실행 중인 file
+    int fd_max;                          // 최대 file descriptor 수
+		#endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
