@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <hash.h>
 #include "threads/synch.h"
 
 /* States in a thread's life cycle. */
@@ -125,7 +126,11 @@ struct thread
     struct file **fd_table;              // file descriptor table
     struct file *current_file;           // 현재 실행 중인 file
     int fd_max;                          // 최대 file descriptor 수
-		#endif
+#endif
+#ifdef VM
+    struct hash vm;
+    void *esp;
+#endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

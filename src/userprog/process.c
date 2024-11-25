@@ -18,6 +18,8 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/frame.h"
+#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -79,6 +81,10 @@ start_process (void *file_name_)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   filename = strtok_r (fn_copy, " ", &fn_save); // space를 기준으로 filename parsing
+  // end
+
+  // Supplemental Page Table - pintos 3
+  vm_init (&thread_current ()->vm);
   // end
 
   /* Initialize interrupt frame and load executable. */
@@ -500,16 +506,24 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success = false;
-
+  
+  // Frame Table - pintos 3
+  struct frame *frame;
+  
+  lock_acquire (&frame_lock);
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  if (kpage != NULL) 
+  frame = frame_allocate (kpage);
+  if (frame->page_addr != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, frame->page_addr, true);
       if (success)
         *esp = PHYS_BASE;
       else
-        palloc_free_page (kpage);
+        frame_deallocate (frame);
     }
+
+  lock_release (&frame_lock);
+
   return success;
 }
 
