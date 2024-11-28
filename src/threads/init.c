@@ -33,6 +33,8 @@
 #endif
 #ifdef VM
 #include "vm/frame.h"
+#include "vm/page.h"
+#include "vm/swap.h"
 #endif
 #ifdef FILESYS
 #include "devices/block.h"
@@ -104,6 +106,7 @@ main (void)
   // Frame Table - pintos 3
 #ifdef VM
   frame_table_init ();
+  swap_table_init ();
 #endif
   // end
 

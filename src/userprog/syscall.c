@@ -82,6 +82,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       get_argument (f->esp + 4, argv, 1);
       close ((int)argv[0]);
       break;
+    case SYS_MMAP:
+      get_argument (f->esp + 4, argv, 2);
+      f->eax = mmap ((int)argv[0], (void *)argv[1]);
+      break;
+    case SYS_MUNMAP:
+      get_argument (f->esp + 4, argv, 1);
+      munmap ((mapid_t)argv[0]);
+      break;
     default:
       exit (-1);
   }
@@ -355,5 +363,29 @@ close (int fd)
     file_close (f);
     thread_current ()->fd_table[fd] = NULL; // table에서 file 삭제
   }
+}
+// end
+
+// Memory Mapped Files - pintos 3
+mapid_t
+mmap (int fd, void *addr)
+{
+  if (is_kernel_vaddr (addr))
+  {
+    exit (-1);
+  }
+
+  if ((addr == NULL) || (pg_ofs (addr) != 0) || ((int) addr % PGSIZE != 0))
+  {
+    return -1;
+  }
+
+  return 0;
+}
+
+void
+munmap (mapid_t mapping)
+{
+
 }
 // end

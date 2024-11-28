@@ -19,7 +19,6 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/frame.h"
-#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -471,29 +470,39 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      /* Get a page of memory. */
-      uint8_t *kpage = palloc_get_page (PAL_USER);
-      if (kpage == NULL)
+      // Lazy Loading - pintos 3
+
+      // /* Get a page of memory. */
+      // uint8_t *kpage = palloc_get_page (PAL_USER);
+      // if (kpage == NULL)
+      //   return false;
+
+      // /* Load this page. */
+      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+      //   {
+      //     palloc_free_page (kpage);
+      //     return false; 
+      //   }
+      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
+
+      // /* Add the page to the process's address space. */
+      // if (!install_page (upage, kpage, writable)) 
+      //   {
+      //     palloc_free_page (kpage);
+      //     return false; 
+      //   }
+
+      struct page *page = page_allocate (BINARY, upage, writable, ofs, page_read_bytes, page_zero_bytes, file);
+      if (page == NULL)
+      {
         return false;
-
-      /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
+      }
+      // end
 
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
+      ofs += page_read_bytes;
       upage += PGSIZE;
     }
   return true;
@@ -504,25 +513,32 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp) 
 {
-  uint8_t *kpage;
+  // uint8_t *kpage;
   bool success = false;
   
   // Frame Table - pintos 3
   struct frame *frame;
   
-  lock_acquire (&frame_lock);
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  frame = frame_allocate (kpage);
+  // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  frame = frame_allocate (PAL_USER | PAL_ZERO);
   if (frame->page_addr != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, frame->page_addr, true);
       if (success)
+      {
+        frame->page = page_allocate (ANONYMOUS, ((uint8_t *) PHYS_BASE) - PGSIZE, true, 0, 0, 0, NULL);
+        if (frame->page == NULL)
+        {
+          success = false;
+          return success;
+        }
         *esp = PHYS_BASE;
+      }
       else
+      {
         frame_deallocate (frame);
+      }
     }
-
-  lock_release (&frame_lock);
 
   return success;
 }
@@ -632,5 +648,74 @@ get_child (pid_t pid)
   }
 
   return NULL; // 없는 경우 NULL 반환
+}
+// end
+
+// Lazy Loading - pintos 3
+bool
+fault_handler (struct page *page)
+{
+  bool success = false;
+  struct frame *frame;
+  
+  frame = frame_allocate (PAL_USER | PAL_ZERO);
+  frame->page = page;
+
+  if (page->type == BINARY || page->type == FILE)
+  {
+    success = load_file (frame->page_addr, page);
+  }
+  else if (page->type == ANONYMOUS)
+  {
+    //success = swap_in (page->swap_slot, frame->page_addr);
+  }
+  else
+  {
+    return success;
+  }
+
+  if ((success == false) || (!install_page (page->addr, frame->page_addr, page->writable)))
+  {
+    frame_deallocate (frame);
+    return false;
+  }
+
+  return success;
+}
+// end
+
+// Stack Growth - pintos 3
+bool
+stack_growth (void *addr)
+{
+  struct frame *frame;
+  void *vaddr = pg_round_down (addr);
+  bool success = false;
+
+  frame = frame_allocate (PAL_USER | PAL_ZERO);
+  if (frame != NULL)
+  {
+    success = install_page (vaddr, frame->page_addr, true);
+    if (success == false)
+    {
+      frame_deallocate (frame);
+      return success;
+    }
+    else
+    {
+      frame->page = page_allocate (ANONYMOUS, vaddr, true, 0, 0, 0, NULL);
+      if (frame->page == NULL)
+      {
+        success = false;
+        return success;
+      }
+      
+      return success;
+    }
+  }
+  else
+  {
+    return success;
+  }
 }
 // end

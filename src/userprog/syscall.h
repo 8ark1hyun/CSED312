@@ -5,6 +5,7 @@
 
 // System Calls - pintos 2
 typedef int pid_t; // Process identifier type
+typedef int mapid_t;
 // end
 
 void syscall_init (void);
@@ -25,6 +26,10 @@ int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+// end
+// Memory Mapped Files - pinto 3
+mapid_t mmap (int fd, void *addr);
+void munmap (mapid_t mapping);
 // end
 
 #endif /* userprog/syscall.h */

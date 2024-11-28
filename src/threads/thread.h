@@ -4,7 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include <hash.h>
+#include "lib/kernel/hash.h"
 #include "threads/synch.h"
 
 /* States in a thread's life cycle. */
@@ -130,6 +130,9 @@ struct thread
 #ifdef VM
     struct hash vm;
     void *esp;
+
+    struct list mmap_file_list;
+    int map_max;
 #endif
 
     /* Owned by thread.c. */
