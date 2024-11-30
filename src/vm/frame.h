@@ -2,9 +2,7 @@
 #define VM_FRAME_H
 
 #include <list.h>
-#include <stdlib.h>
 #include "threads/thread.h"
-#include "threads/synch.h"
 #include "vm/page.h"
 
 struct frame
@@ -21,6 +19,7 @@ void frame_insert (struct frame *frame);
 void frame_delete (struct frame *frame);
 struct frame *frame_allocate (enum palloc_flags flags);
 void frame_deallocate (struct frame *frame);
+struct frame *frame_find (void *addr);
 void evict (void);
 
 #endif

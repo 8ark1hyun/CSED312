@@ -1,10 +1,11 @@
 #ifndef VM_SWAP_H
 #define VM_SWAP_H
 
+#include <stdbool.h>
 #include "vm/page.h"
 
 void swap_table_init (void);
-void swap_in (struct page *page, void *addr);
-int swap_out (void *addr);
+bool swap_in (size_t swap_slot, void *addr);
+size_t swap_out (void *addr);
 
 #endif

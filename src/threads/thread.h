@@ -132,7 +132,7 @@ struct thread
     void *esp;
 
     struct list mmap_file_list;
-    int map_max;
+    int mmap_max;
 #endif
 
     /* Owned by thread.c. */

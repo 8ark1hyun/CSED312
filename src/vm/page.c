@@ -5,6 +5,11 @@
 #include "threads/vaddr.h"
 #include "filesys/file.h"
 
+static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
+static bool vm_less_func (const struct hash_elem *e, const struct hash_elem *b, void *aux);
+static void vm_destroy_func (struct hash_elem *e, void *aux);
+
+extern struct lock frame_lock;
 extern struct lock file_lock;
 
 static unsigned
@@ -21,6 +26,23 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UN
     return hash_entry (a, struct page, elem)->addr < hash_entry (b, struct page, elem)->addr;
 }
 
+static void
+vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
+{
+    struct page *page = hash_entry (e, struct page, elem);
+    struct frame *frame;
+
+    if (page != NULL)
+    {
+        frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
+        if (frame != NULL)
+        {
+            frame_deallocate (frame);
+        }
+        free (page);
+    }
+}
+
 void
 vm_init (struct hash *vm)
 {
@@ -28,20 +50,33 @@ vm_init (struct hash *vm)
 }
 
 void
-page_insert (struct hash *vm, struct page *page)
+vm_destroy (struct hash *vm)
 {
-    hash_insert (vm, &page->elem);
+    hash_destroy (vm, vm_destroy_func);
 }
 
-void
+bool
+page_insert (struct hash *vm, struct page *page)
+{
+    if (hash_insert (vm, &page->elem) == NULL)
+        return false;
+    else
+        return true;
+}
+
+bool
 page_delete (struct page *page)
 {
-    hash_delete (&thread_current ()->vm, &page->elem);
+    if (hash_delete (&thread_current ()->vm, &page->elem) == NULL)
+        return false;
+    else       
+        return true;
 }
 
 struct page *
 page_allocate (enum page_type type, void *addr, bool writable, uint32_t offset, uint32_t read_byte, uint32_t zero_byte, struct file *file)
 {
+    lock_acquire (&frame_lock);
     struct page *page = (struct page*) malloc (sizeof (struct page));
     if (page == NULL)
     {
@@ -60,6 +95,8 @@ page_allocate (enum page_type type, void *addr, bool writable, uint32_t offset, 
     page->swap_slot = 0;
 
     page_insert (&thread_current ()->vm, page);
+    lock_release (&frame_lock);
+
     return page;
 }
 

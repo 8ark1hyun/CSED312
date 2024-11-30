@@ -1,14 +1,16 @@
 #include <stdlib.h>
 #include "vm/frame.h"
+#include "vm/swap.h"
+#include "threads/synch.h"
 #include "threads/palloc.h"
 #include "threads/malloc.h"
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
 #include "filesys/file.h"
 
-static struct list frame_table;
-static struct lock frame_lock;
-static struct list_elem *frame_clock;
+struct list frame_table;
+struct lock frame_lock;
+struct list_elem *frame_clock;
 
 extern struct lock file_lock;
 
@@ -23,13 +25,18 @@ frame_table_init (void)
 void
 frame_insert (struct frame *frame)
 {
+    lock_acquire (&frame_lock);
     list_push_back (&frame_table, &frame->elem);
+    lock_release (&frame_lock);
 }
 
 void
 frame_delete (struct frame *frame)
 {
-    list_remove (&frame->elem);
+    if (frame_clock != &frame->elem)
+        list_remove (&frame->elem);
+    else
+        frame_clock = list_remove (frame_clock);
 }
 
 struct frame *
@@ -38,47 +45,55 @@ frame_allocate (enum palloc_flags flags)
     struct frame *frame;
 
     frame = (struct frame *) malloc (sizeof (struct frame));
+    if (frame == NULL)
+        return NULL;
     memset (frame, 0, sizeof (struct frame));
 
-    if (frame == NULL)
+    frame->page_addr = palloc_get_page (flags);
+
+    while (frame->page_addr == NULL)
     {
-        return NULL;
-    }
-    else
-    {
-        lock_acquire (&frame_lock);
+        evict ();
         frame->page_addr = palloc_get_page (flags);
-        if (frame->page_addr == NULL)
-        {
-            evict ();
-            frame->page_addr = palloc_get_page (flags);
-            if (frame->page_addr == NULL)
-            {
-                lock_release (&frame_lock);
-                return NULL;
-            }
-        }
-        frame->thread = thread_current ();
-        frame->pinning = false;
-        frame_insert (frame);
-        lock_release (&frame_lock);
-        return frame;
     }
+
+    frame->thread = thread_current ();
+    frame->pinning = false;
+    frame_insert (frame);
+
+    return frame;
 }
 
 void
 frame_deallocate (struct frame *frame)
 {
     lock_acquire (&frame_lock);
-    if (frame == NULL)
+    if (frame != NULL)
     {
-        exit (-1);
+        pagedir_clear_page (frame->thread->pagedir, frame->page->addr);
+        palloc_free_page (frame->page_addr);
+        frame_delete (frame);
+        free (frame);
     }
-    pagedir_clear_page (frame->thread->pagedir, frame->page->addr);
-    palloc_free_page (frame->page_addr);
-    frame_delete (frame);
-    free (frame);
     lock_release (&frame_lock);
+}
+
+struct frame *
+frame_find (void *addr)
+{
+    struct frame *frame;
+    struct list_elem *e;
+
+    for (e = list_begin (&frame_table); e != list_end (&frame_table); e = list_next (e))
+    {
+        frame = list_entry (e, struct frame, elem);
+        if (frame->page->addr == addr)
+        {
+            return frame;
+        }
+    }
+
+    return NULL;
 }
 
 void
@@ -131,7 +146,7 @@ evict (void)
     {
         if (dirty)
         {
-            //frame->page->swap_slot = swap_out (frame->page_addr);
+            frame->page->swap_slot = swap_out (frame->page_addr);
             frame->page->type = ANONYMOUS;
         }
     }
@@ -146,9 +161,8 @@ evict (void)
     }
     else if (frame->page->type == ANONYMOUS)
     {
-        //frame->page->swap_slot = swap_out (frame->page_addr);
+        frame->page->swap_slot = swap_out (frame->page_addr);
     }
 
     frame_deallocate (frame);
-
 }

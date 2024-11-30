@@ -573,7 +573,7 @@ init_thread (struct thread *t, const char *name, int priority)
 #endif
 #ifdef VM
   list_init (&t->mmap_file_list);
-  t->map_max = 0;
+  t->mmap_max = 0;
 #endif
 
   old_level = intr_disable ();

@@ -19,6 +19,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/frame.h"
+#include "vm/page.h"
+#include "vm/swap.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -166,6 +168,15 @@ process_exit (void)
   palloc_free_page (cur->fd_table);
 
   file_close (cur->current_file);
+  // end
+
+  // pintos 3
+  for (i = 0; i <= cur->mmap_max; i++)
+  {
+    munmap (i);
+  }
+
+  vm_destroy (&cur->vm);
   // end
 
   /* Destroy the current process's page directory and switch back
@@ -494,9 +505,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
       struct page *page = page_allocate (BINARY, upage, writable, ofs, page_read_bytes, page_zero_bytes, file);
       if (page == NULL)
-      {
         return false;
-      }
       // end
 
       /* Advance. */
@@ -610,7 +619,7 @@ pass_argument (char *file_name, void **esp)
   for (i = index - 1; i >= 0; i--)
   {
     *esp -= 4;
-    **(uint32_t **)esp = argv_addr[i];
+    **(uint32_t **)esp = (uint32_t)argv_addr[i];
   }
 
   *esp -= 4;
@@ -653,7 +662,7 @@ get_child (pid_t pid)
 
 // Lazy Loading - pintos 3
 bool
-fault_handler (struct page *page)
+fault_handle (struct page *page)
 {
   bool success = false;
   struct frame *frame;
@@ -667,7 +676,7 @@ fault_handler (struct page *page)
   }
   else if (page->type == ANONYMOUS)
   {
-    //success = swap_in (page->swap_slot, frame->page_addr);
+    success = swap_in (page->swap_slot, frame->page_addr);
   }
   else
   {
@@ -688,9 +697,9 @@ fault_handler (struct page *page)
 bool
 stack_growth (void *addr)
 {
+  bool success = false;
   struct frame *frame;
   void *vaddr = pg_round_down (addr);
-  bool success = false;
 
   frame = frame_allocate (PAL_USER | PAL_ZERO);
   if (frame != NULL)
@@ -709,7 +718,6 @@ stack_growth (void *addr)
         success = false;
         return success;
       }
-      
       return success;
     }
   }

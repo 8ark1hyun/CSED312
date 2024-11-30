@@ -4,8 +4,11 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 #include "userprog/process.h"
 #include "userprog/pagedir.h"
+#include "vm/frame.h"
+#include "vm/page.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "devices/shutdown.h"
@@ -26,6 +29,8 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
+  thread_current ()->esp = f->esp;
+
   check_valid_addr ((void *)(f->esp)); // 주소 유효성 검증
 
   int argv[3];
@@ -40,7 +45,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_EXEC:
       get_argument (f->esp + 4, argv, 1);
-      f->eax = exec ((const char *)argv[0]);
+      f->eax = exec ((const char *)argv[0], f->esp);
       break;
     case SYS_WAIT:
       get_argument (f->esp + 4, argv, 1);
@@ -64,11 +69,11 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_READ:
       get_argument (f->esp + 4, argv, 3);
-      f->eax = read ((int)argv[0], (void *)argv[1], (unsigned)argv[2]);
+      f->eax = read ((int)argv[0], (void *)argv[1], (unsigned)argv[2], f->esp);
       break;
     case SYS_WRITE:
       get_argument (f->esp + 4, argv, 3);
-      f->eax = write ((int)argv[0], (const void *)argv[1], (unsigned)argv[2]);
+      f->eax = write ((int)argv[0], (const void *)argv[1], (unsigned)argv[2], f->esp);
       break;
     case SYS_SEEK:
       get_argument (f->esp + 4, argv, 2);
@@ -98,7 +103,12 @@ syscall_handler (struct intr_frame *f UNUSED)
 void
 check_valid_addr (const void *addr)
 {
-  if ((addr == NULL) || (is_user_vaddr (addr) == false) || (pagedir_get_page (thread_current ()->pagedir, addr) == NULL))
+  /* if ((addr == NULL) || (is_user_vaddr (addr) == false) || (pagedir_get_page (thread_current ()->pagedir, addr) == NULL))
+  {
+    exit (-1); // 유효한 주소가 아닌 경우 exit
+  }*/
+
+  if ((addr == NULL) || (is_user_vaddr (addr) == false))
   {
     exit (-1); // 유효한 주소가 아닌 경우 exit
   }
@@ -135,12 +145,54 @@ exit (int status)
 }
 
 pid_t
-exec (const char *cmd_line)
+exec (const char *cmd_line, void *esp)
 {
   struct thread *child;
   pid_t pid;
+  void *cmd_addr = (void *)cmd_line;
+  unsigned int length = strlen (cmd_line) + 1;
+  size_t bytes;
+  struct frame *frame;
+  struct page *page;
 
 	check_valid_addr (cmd_line); // 주소 유효성 검증
+
+  while (length > 0)
+  {
+    page = page_find (pg_round_down (cmd_addr));
+    
+    if (page != NULL)
+    {
+        if (!fault_handle (page))
+        {
+          exit (-1);
+        }
+    }
+    else
+    {
+      uint32_t base = 0xc0000000;
+      uint32_t max = 0x800000;
+      uint32_t stack_top_addr = base - max;
+
+      if ((cmd_addr >= (esp - 32)) && ((uint32_t)cmd_addr >= stack_top_addr))
+      {
+        if (!stack_growth (cmd_addr))
+        {
+            exit (-1);
+        }
+      }
+      else
+      {
+        exit (-1);
+      }
+    }
+
+    bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
+    frame = frame_find (pg_round_down (cmd_addr));
+    frame->pinning = true;
+    length -= bytes;
+    cmd_addr += bytes;
+  }
 
   pid = process_execute (cmd_line); // 새로운 process 생성
   if (pid == -1)
@@ -150,6 +202,18 @@ exec (const char *cmd_line)
 
   child = get_child (pid); // child process
   sema_down (&child->sema_load); // child process가 load를 완료할 때까지 대기
+
+  length = strlen (cmd_line) + 1;
+  cmd_addr = (void *) cmd_line;
+
+  while (length > 0)
+  {
+    bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
+    frame = frame_find (pg_round_down (cmd_addr));
+    frame->pinning = false;
+    length -= bytes;
+    cmd_addr += bytes;
+  }
 
   if (child->is_load)
   {
@@ -170,6 +234,8 @@ wait (pid_t pid)
 bool
 create (const char *file, unsigned initial_size)
 {
+  bool success = false;
+
   check_valid_addr ((void *)file); // 주소 유효성 검증
 
   if (file == NULL)
@@ -177,7 +243,11 @@ create (const char *file, unsigned initial_size)
     exit (-1); // file이 NULL인 경우 exit
   }
 
-  return filesys_create (file, initial_size);
+  lock_acquire (&file_lock);
+  success = filesys_create (file, initial_size);
+  lock_release (&file_lock);
+
+  return success;
 }
 
 bool
@@ -244,15 +314,57 @@ filesize (int fd)
 }
 
 int
-read (int fd, void *buffer, unsigned size)
+read (int fd, void *buffer, unsigned size, void *esp)
 {
   struct file* f;
   int bytes = 0;
   unsigned int i;
+  void *buffer_addr = buffer;
+  unsigned int file_size = size;
+  size_t read_bytes;
+  struct frame *frame;
+  struct page *page;
 
   for (i = 0; i < size; i++)
   {
     check_valid_addr (buffer + i); // 주소 유효성 검증
+  }
+
+  while (file_size > 0)
+  {
+    page = page_find (pg_round_down (buffer_addr));
+
+    if (page != NULL)
+    {
+        if (!fault_handle (page))
+        {
+          exit (-1);
+        }
+    }
+    else
+    {
+      uint32_t base = 0xc0000000;
+      uint32_t max = 0x800000;
+      uint32_t stack_top_addr = base - max;
+
+      if ((buffer_addr >= (esp - 32)) && ((uint32_t)buffer_addr >= stack_top_addr))
+      {
+        if (!stack_growth (buffer_addr))
+        {
+            exit (-1);
+        }
+      }
+      else
+      {
+        exit (-1);
+      }
+    }    
+
+    frame = frame_find (pg_round_down (buffer_addr));
+    frame->pinning = true;
+    read_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
+    file_size -= read_bytes;
+    buffer_addr += read_bytes;
   }
 
   if (fd == 0) // stdin인 경우
@@ -279,19 +391,73 @@ read (int fd, void *buffer, unsigned size)
     return -1; // -1 반환
   }
 
+  file_size = size;
+  buffer_addr = buffer;
+
+  while (file_size > 0)
+  {
+    frame = frame_find (buffer_addr);
+    frame->pinning = false;
+    read_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
+    file_size -= read_bytes;
+    buffer_addr += read_bytes;
+  }
+
   return bytes; // 읽은 bytes 수 반환
 }
 
 int
-write (int fd, const void *buffer, unsigned size)
+write (int fd, const void *buffer, unsigned size, void *esp)
 {
   struct file* f;
   int bytes = 0;
-  unsigned i;
+  unsigned int i;
+  void *buffer_addr = (void *)buffer;
+  unsigned int file_size = size;
+  size_t write_bytes;
+  struct frame *frame;
+  struct page *page;
 
   for (i = 0; i < size; i++)
   {
     check_valid_addr (buffer + i); // 주소 유효성 검증
+  }
+
+  while (file_size > 0)
+  {
+    page = page_find (pg_round_down (buffer_addr));
+
+    if (page != NULL)
+    {
+        if (!fault_handle (page))
+        {
+          exit (-1);
+        }
+    }
+    else
+    {
+      uint32_t base = 0xc0000000;
+      uint32_t max = 0x800000;
+      uint32_t stack_top_addr = base - max;
+
+      if ((buffer_addr >= (esp - 32)) && ((uint32_t)buffer_addr >= stack_top_addr))
+      {
+        if (!stack_growth (buffer_addr))
+        {
+            exit (-1);
+        }
+      }
+      else
+      {
+        exit (-1);
+      }
+    } 
+
+    frame = frame_find (pg_round_down (buffer_addr));
+    frame->pinning = true;
+    write_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
+    file_size -= write_bytes;
+    buffer_addr += write_bytes;   
   }
 
   if (fd == 1) // stdout인 경우
@@ -312,6 +478,18 @@ write (int fd, const void *buffer, unsigned size)
   else // stdin이거나 존재하지 않는 file인 경우
   {
     return -1; // -1 반환
+  }
+
+  file_size = size;
+  buffer_addr = buffer;
+
+  while (file_size > 0)
+  {
+    frame = frame_find (buffer_addr);
+    frame->pinning = false;
+    write_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
+    file_size -= write_bytes;
+    buffer_addr += write_bytes;
   }
 
   return bytes; // 쓴 bytes 수 반환
@@ -341,13 +519,16 @@ tell (int fd)
 {
   struct file *f;
 
+  lock_acquire (&file_lock);
   if (fd < thread_current ()->fd_max)
   {
     f = thread_current ()->fd_table[fd];
+    lock_release (&file_lock);
     return file_tell (f);
   }
   else
   {
+    lock_release (&file_lock);
     return -1;
   }
 }
@@ -370,6 +551,14 @@ close (int fd)
 mapid_t
 mmap (int fd, void *addr)
 {
+  int file_size;
+  int offset = 0;
+  struct mmap_file *mmap_file;
+  struct file *f = NULL;
+  struct page *page;
+  size_t page_read_bytes;
+  size_t page_zero_bytes;
+
   if (is_kernel_vaddr (addr))
   {
     exit (-1);
@@ -380,12 +569,91 @@ mmap (int fd, void *addr)
     return -1;
   }
 
-  return 0;
+  mmap_file = (struct mmap_file *) malloc (sizeof (struct mmap_file));
+  if (mmap_file == NULL)
+  {
+    return -1;
+  }
+  memset (mmap_file, 0, sizeof (struct mmap_file));
+
+  lock_acquire (&file_lock);
+  if ((fd > 1) && (fd < thread_current ()->fd_max))
+  {
+    f = file_reopen (thread_current ()->fd_table[fd]);
+  }
+  file_size = file_length (f);
+  lock_release (&file_lock);
+  if (file_size == 0)
+  {
+    return -1;
+  }
+
+  list_init (&mmap_file->page_list);
+
+  while (file_size > 0)
+  {
+    if (page_find (addr))
+    {
+      return -1;
+    }
+
+    page_read_bytes = file_size < PGSIZE ? file_size : PGSIZE;
+    page_zero_bytes = PGSIZE - page_read_bytes;
+
+    page = page_allocate (FILE, addr, true, offset, page_read_bytes, page_zero_bytes, f);
+    if (page == NULL)
+    {
+      return false;
+    }
+    list_push_back (&mmap_file->page_list, &page->mmap_elem);
+    
+    addr += PGSIZE;
+    offset += PGSIZE;
+    file_size -= PGSIZE;
+  }
+
+  list_push_back (&thread_current ()->mmap_file_list, &mmap_file->elem);
+  mmap_file->mapid = thread_current ()->mmap_max++;
+  mmap_file->file = f;
+
+  return mmap_file->mapid;
 }
 
 void
 munmap (mapid_t mapping)
 {
+  struct mmap_file *mmap_file = NULL;
+  struct page *page;
+  struct list_elem *e;
 
+  for (e = list_begin (&thread_current ()->mmap_file_list); e != list_end (&thread_current ()->mmap_file_list); e = list_next (e))
+  {
+    mmap_file = list_entry (e, struct mmap_file, elem);
+    if (mmap_file->mapid == mapping)
+    {
+      break;
+    }
+  }
+
+  if (mmap_file == NULL)
+  {
+    return;
+  }
+
+  for (e = list_begin (&mmap_file->page_list); e != list_end (&mmap_file->page_list); e = list_next (e))
+  {
+    page = list_entry (e, struct page, mmap_elem);
+    if ((pagedir_is_dirty (thread_current ()->pagedir, page->addr)))
+    {
+      lock_acquire (&file_lock);
+      file_write_at (page->file, page->addr, page->read_byte, page->offset);
+      lock_release (&file_lock);
+      frame_deallocate (pagedir_get_page (thread_current ()->pagedir, page->addr));
+    }
+    e = list_remove (e);
+  }
+
+  list_remove (&mmap_file->elem);
+  free (mmap_file);
 }
 // end

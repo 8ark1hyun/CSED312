@@ -17,7 +17,7 @@ void process_activate (void);
 void pass_argument (char *file_name, void **esp);
 struct thread *get_child (pid_t pid);
 
-bool fault_handler (struct page *page);
+bool fault_handle (struct page *page);
 bool stack_growth (void *addr);
 
 #endif /* userprog/process.h */
