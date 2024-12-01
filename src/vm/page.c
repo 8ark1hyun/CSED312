@@ -65,7 +65,8 @@ bool
 page_insert (struct hash *vm, struct page *page)
 {   
     if (hash_insert (vm, &page->elem) == NULL) {
-        printf("real falese?FD?FD??"); return false;}
+        return false;
+    }
     else
     {
         //         // 삽입 성공: 디버깅 출력 추가

@@ -137,6 +137,7 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 #ifndef NDEBUG
   memset (pages, 0xcc, PGSIZE * page_cnt);
 #endif
+printf("\n################### palloc_free_multiple (void *pages, size_t page_cnt) #########################\n");
 printf("[DEBUG] pool->used_map: %p\n", pool->used_map);
 printf("[DEBUG] page_idx: %zu\n", page_idx);
 printf("[DEBUG] page_cnt: %zu\n", page_cnt);

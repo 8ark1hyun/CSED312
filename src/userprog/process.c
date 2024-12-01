@@ -509,7 +509,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       if (page == NULL)
         return false;
       // end
-      printf("load_segment\n");
       page_insert(&thread_current()->vm, page);
       /* Advance. */
       read_bytes -= page_read_bytes;
