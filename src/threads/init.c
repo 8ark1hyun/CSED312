@@ -103,12 +103,7 @@ main (void)
   palloc_init (user_page_limit);
   malloc_init ();
   paging_init ();
-  // Frame Table - pintos 3
-#ifdef VM
-  frame_table_init ();
-  swap_table_init ();
-#endif
-  // end
+
 
   /* Segmentation. */
 #ifdef USERPROG
@@ -137,6 +132,13 @@ main (void)
   locate_block_devices ();
   filesys_init (format_filesys);
 #endif
+
+  // Frame Table - pintos 3
+#ifdef VM
+  frame_table_init ();
+  swap_table_init ();
+#endif
+  // end
 
   printf ("Boot complete.\n");
   
