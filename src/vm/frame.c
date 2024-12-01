@@ -50,7 +50,6 @@ frame_allocate (enum palloc_flags flags)
     memset (frame, 0, sizeof (struct frame));
 
     frame->page_addr = palloc_get_page (flags);
-
     while (frame->page_addr == NULL)
     {
         evict ();

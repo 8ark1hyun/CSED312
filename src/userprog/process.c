@@ -530,6 +530,7 @@ setup_stack (void **esp)
   
   // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   frame = frame_allocate (PAL_USER | PAL_ZERO);
+
   if (frame->page_addr != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, frame->page_addr, true);

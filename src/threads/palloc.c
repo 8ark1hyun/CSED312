@@ -71,6 +71,7 @@ void *
 palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
 {
   struct pool *pool = flags & PAL_USER ? &user_pool : &kernel_pool;
+
   void *pages;
   size_t page_idx;
 
