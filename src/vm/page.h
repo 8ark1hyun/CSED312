@@ -30,6 +30,7 @@ struct page
     struct hash_elem elem;
     struct list_elem mmap_elem;
     size_t swap_slot;
+    bool is_loaded; // physical memory의 load 여부 flag 
 };
 
 struct mmap_file

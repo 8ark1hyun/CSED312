@@ -409,6 +409,7 @@ read (int fd, void *buffer, unsigned size, void *esp)
 int
 write (int fd, const void *buffer, unsigned size, void *esp)
 {
+  printf("start write =+++++=+++++=+++++=+++++=+++++\n");
   struct file* f;
   int bytes = 0;
   unsigned int i;
@@ -429,10 +430,13 @@ write (int fd, const void *buffer, unsigned size, void *esp)
 
     if (page != NULL)
     {
+      if(!(page->is_loaded))
+      { 
         if (!fault_handle (page))
-        {
+        { 
           exit (-1);
         }
+      }
     }
     else
     {

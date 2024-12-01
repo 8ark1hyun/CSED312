@@ -115,7 +115,10 @@ pagedir_set_page (uint32_t *pd, void *upage, void *kpage, bool writable)
       return true;
     }
   else
+  {
+    
     return false;
+  }
 }
 
 /* Looks up the physical address that corresponds to user virtual
@@ -131,7 +134,9 @@ pagedir_get_page (uint32_t *pd, const void *uaddr)
   
   pte = lookup_page (pd, uaddr, false);
   if (pte != NULL && (*pte & PTE_P) != 0)
+  {
     return pte_get_page (*pte) + pg_ofs (uaddr);
+  }
   else
     return NULL;
 }

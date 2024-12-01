@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "vm/frame.h"
 #include "vm/swap.h"
 #include "threads/synch.h"
@@ -7,6 +8,9 @@
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
 #include "filesys/file.h"
+#include "threads/vaddr.h"
+#include "lib/kernel/bitmap.h"
+
 
 struct list frame_table;
 struct lock frame_lock;
@@ -59,6 +63,10 @@ frame_allocate (enum palloc_flags flags)
     frame->thread = thread_current ();
     frame->pinning = false;
     frame_insert (frame);
+    
+    // printf("frame_allocate (enum palloc_flags flags)##########################################\n");
+    // printf("[DEBUG] Allocating frame at: %p\n", frame);
+    // printf("[DEBUG] Frame physical address: %p\n", frame->page_addr);
 
     return frame;
 }
@@ -69,6 +77,12 @@ frame_deallocate (struct frame *frame)
     lock_acquire (&frame_lock);
     if (frame != NULL)
     {
+
+        // printf("frame_deallocate (struct frame *frame)##########################################\n");
+        // 프레임 정보 출력
+        // printf("[DEBUG] dellocating frame at: %p\n", frame);
+        // printf("[DEBUG] Frame physical address: %p\n", frame->page_addr);
+
         pagedir_clear_page (frame->thread->pagedir, frame->page->addr);
         palloc_free_page (frame->page_addr);
         frame_delete (frame);

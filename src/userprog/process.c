@@ -165,6 +165,7 @@ process_exit (void)
   {
     close (i);
   }
+
   palloc_free_page (cur->fd_table);
 
   file_close (cur->current_file);
@@ -569,6 +570,11 @@ install_page (void *upage, void *kpage, bool writable)
 
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
+//   printf("[DEBUG] Before install_page:\n");
+// printf("  page->addr: %p\n", upage);
+// printf("  frame->page_addr: %p\n", kpage);
+// printf("  page->writable: %d\n", writable);
+
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
@@ -630,7 +636,7 @@ pass_argument (char *file_name, void **esp)
   **(uint32_t **)esp = index; // argc
 
   *esp -= 4;
-  **(uint32_t **)esp = 0; // return address
+  **(uint32_t **)esp = 0; // return address]
 
   palloc_free_page (argv);
   palloc_free_page (argv_addr);
@@ -684,12 +690,17 @@ fault_handle (struct page *page)
     return success;
   }
 
-  if ((success == false) || (!install_page (page->addr, frame->page_addr, page->writable)))
+  if (success == false)
   {
     frame_deallocate (frame);
     return false;
   }
-
+  if (!install_page (page->addr, frame->page_addr, page->writable))
+  {
+    frame_deallocate (frame);
+    return false;
+  }
+  page->is_loaded = true;
   return success;
 }
 // end

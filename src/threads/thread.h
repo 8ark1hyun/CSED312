@@ -105,6 +105,8 @@ struct thread
     int nice; // thread의 nice 값
     int recent_cpu; // thread의 최근 CPU 사용량
 
+    bool exited;
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
