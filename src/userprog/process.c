@@ -177,7 +177,6 @@ process_exit (void)
   palloc_free_page (cur->fd_table);
 
 
-
   vm_destroy (&cur->vm);
   // end
 

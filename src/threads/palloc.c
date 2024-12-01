@@ -98,6 +98,10 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
         PANIC ("palloc_get: out of pages");
     }
 
+  printf("\n################### palloc_get_multiple (enum palloc_flags flags, size_t page_cnt) #########################\n");
+printf("[DEBUG] pool->used_map: %p\n", pool->used_map);
+printf("[DEBUG] page_idx: %zu\n", page_idx);
+printf("[DEBUG] page_cnt: %zu\n", page_cnt);
   return pages;
 }
 
