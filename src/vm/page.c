@@ -32,10 +32,11 @@ vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
     struct page *page = hash_entry (e, struct page, elem);
     struct frame *frame;
 
+    
     if (page != NULL)
     {
         frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
-        if (frame != NULL)
+        if (page -> is_loaded)
         {
             frame_deallocate (frame);
         }

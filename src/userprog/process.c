@@ -165,9 +165,6 @@ process_exit (void)
   {
     close (i);
   }
-
-  palloc_free_page (cur->fd_table);
-
   file_close (cur->current_file);
   // end
 
@@ -176,6 +173,10 @@ process_exit (void)
   {
     munmap (i);
   }
+  
+  palloc_free_page (cur->fd_table);
+
+
 
   vm_destroy (&cur->vm);
   // end

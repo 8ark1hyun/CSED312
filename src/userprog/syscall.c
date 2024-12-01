@@ -654,6 +654,7 @@ munmap (mapid_t mapping)
       lock_release (&file_lock);
       frame_deallocate (pagedir_get_page (thread_current ()->pagedir, page->addr));
     }
+    page -> is_loaded = false;
     e = list_remove (e);
   }
 

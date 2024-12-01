@@ -137,6 +137,13 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 #ifndef NDEBUG
   memset (pages, 0xcc, PGSIZE * page_cnt);
 #endif
+printf("[DEBUG] pool->used_map: %p\n", pool->used_map);
+printf("[DEBUG] page_idx: %zu\n", page_idx);
+printf("[DEBUG] page_cnt: %zu\n", page_cnt);
+
+if (!bitmap_all(pool->used_map, page_idx, page_cnt)) {
+  printf("[DEBUG] Bitmap does not have all bits set for the given range.\n");
+}
 
   ASSERT (bitmap_all (pool->used_map, page_idx, page_cnt));
   bitmap_set_multiple (pool->used_map, page_idx, page_cnt, false);

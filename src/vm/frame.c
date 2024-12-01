@@ -82,7 +82,7 @@ frame_deallocate (struct frame *frame)
         // 프레임 정보 출력
         // printf("[DEBUG] dellocating frame at: %p\n", frame);
         // printf("[DEBUG] Frame physical address: %p\n", frame->page_addr);
-
+        frame->page->is_loaded = false;
         pagedir_clear_page (frame->thread->pagedir, frame->page->addr);
         palloc_free_page (frame->page_addr);
         frame_delete (frame);
@@ -176,6 +176,6 @@ evict (void)
     {
         frame->page->swap_slot = swap_out (frame->page_addr);
     }
-
+    frame->page->is_loaded = false;
     frame_deallocate (frame);
 }
