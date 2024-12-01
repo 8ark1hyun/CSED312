@@ -152,14 +152,11 @@ pagedir_clear_page (uint32_t *pd, void *upage)
 
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (is_user_vaddr (upage));
-  printf("\naaaaaaaa");
   pte = lookup_page (pd, upage, false);
-  printf("\naaaaaaaa");
   if (pte != NULL && (*pte & PTE_P) != 0)
-    {printf("\naaaaaaaa");
+    {
       *pte &= ~PTE_P;
       invalidate_pagedir (pd);
-      printf("\naaaaaaaa");
     }
 }
 

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "vm/page.h"
 #include "userprog/syscall.h"
 #include "threads/malloc.h"
@@ -38,14 +39,12 @@ vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
     struct frame *frame;
     
     if (page != NULL)
-    { 
-        // printf("page -> adder: %x", page -> addr);
+    {
         frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
-        // printf("\nframe: %x",  frame);
-        // printf("\nframe -> adder: %x", frame -> page_addr);
+
         if (page -> is_loaded)
-        { 
-            frame_deallocate (frame); //error
+        {  
+            frame_deallocate (frame);
         }
         free (page);
     }
@@ -65,7 +64,7 @@ vm_destroy (struct hash *vm)
 
 bool
 page_insert (struct hash *vm, struct page *page)
-{   //printf("page_insert\n");
+{   
     if (hash_insert (vm, &page->elem) == NULL) {
         return false;
     }
@@ -105,8 +104,8 @@ page_delete (struct page *page)
 
 struct page *
 page_allocate (enum page_type type, void *addr, bool writable, uint32_t offset, uint32_t read_byte, uint32_t zero_byte, struct file *file)
-{ //printf("page_allocate\n");
-
+{
+    lock_acquire (&frame_lock);
     struct page *page = (struct page*) malloc (sizeof (struct page));
     if (page == NULL)
     {
@@ -124,6 +123,8 @@ page_allocate (enum page_type type, void *addr, bool writable, uint32_t offset, 
     page->file = file;
     page->swap_slot = 0;
 
+    page_insert (&thread_current ()->vm, page);
+    lock_release (&frame_lock);
 
     return page;
 }

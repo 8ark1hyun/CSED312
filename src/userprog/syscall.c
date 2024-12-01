@@ -409,7 +409,7 @@ read (int fd, void *buffer, unsigned size, void *esp)
 int
 write (int fd, const void *buffer, unsigned size, void *esp)
 {
-  printf("start write =+++++=+++++=+++++=+++++=+++++\n");
+  // printf("start write =+++++=+++++=+++++=+++++=+++++\n");
   struct file* f;
   int bytes = 0;
   unsigned int i;

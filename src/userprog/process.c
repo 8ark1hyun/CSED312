@@ -508,6 +508,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       if (page == NULL)
         return false;
       // end
+      //printf("load_segments\n");
       page_insert(&thread_current()->vm, page);
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -543,6 +544,7 @@ setup_stack (void **esp)
           success = false;
           return success;
         }
+        page_insert(&thread_current()->vm, frame->page);
         *esp = PHYS_BASE;
       }
       else
