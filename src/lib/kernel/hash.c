@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "../debug.h"
 #include "threads/malloc.h"
+#include "vm/page.h"
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
         list_entry(LIST_ELEM, struct hash_elem, list_elem)
@@ -54,6 +55,23 @@ void
 hash_clear (struct hash *h, hash_action_func *destructor) 
 {
   size_t i;
+
+
+    // 디버깅: 모든 버킷의 내용을 출력// 디버깅: 모든 버킷의 내용을 출력// 디버깅: 모든 버킷의 내용을 출력// 디버깅: 모든 버킷의 내용을 출력// 디버깅: 모든 버킷의 내용을 출력
+    // printf("[DEBUG] Hash table contents before clearing:\n");
+    // for (i = 0; i < h->bucket_cnt; i++) {
+    //     struct list *bucket = &h->buckets[i];
+    //     printf("  Bucket %zu:\n", i);
+
+    //     for (struct list_elem *e = list_begin(bucket); e != list_end(bucket); e = list_next(e)) {
+    //         struct hash_elem *he = list_elem_to_hash_elem(e);
+    //         struct page *p = hash_entry(he, struct page, elem);
+
+    //         // 페이지 정보 출력
+    //         printf("    Page addr: %p, is_loaded: %d, writable: %d\n",
+    //                p->addr, p->is_loaded, p->writable);
+    //     }
+    // }// 디버깅: 모든 버킷의 내용을 출력// 디버깅: 모든 버킷의 내용을 출력// 디버깅: 모든 버킷의 내용을 출력// 디버깅: 모든 버킷의 내용을 출력
 
   for (i = 0; i < h->bucket_cnt; i++) 
     {

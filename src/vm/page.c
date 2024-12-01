@@ -4,6 +4,11 @@
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "filesys/file.h"
+#include "lib/kernel/hash.h" // 헤더 포함
+#define list_elem_to_hash_elem(LIST_ELEM) \
+        list_entry(LIST_ELEM, struct hash_elem, list_elem)
+
+
 
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
 static bool vm_less_func (const struct hash_elem *e, const struct hash_elem *b, void *aux);
@@ -31,13 +36,13 @@ vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
 {
     struct page *page = hash_entry (e, struct page, elem);
     struct frame *frame;
-
     
     if (page != NULL)
     {
         frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
+
         if (page -> is_loaded)
-        {
+        {  
             frame_deallocate (frame);
         }
         free (page);
@@ -58,11 +63,32 @@ vm_destroy (struct hash *vm)
 
 bool
 page_insert (struct hash *vm, struct page *page)
-{
-    if (hash_insert (vm, &page->elem) == NULL)
-        return false;
+{   
+    if (hash_insert (vm, &page->elem) == NULL) {
+        printf("real falese?FD?FD??"); return false;}
     else
+    {
+        //         // 삽입 성공: 디버깅 출력 추가
+        // printf("[DEBUG] Successfully inserted page: addr=%p, is_loaded=%d, writable=%d\n",
+        //        page->addr, page->is_loaded, page->writable);
+
+        // // 현재 해시 테이블 상태 출력
+        // printf("[DEBUG] VM contents after insertion:\n");
+        // for (size_t i = 0; i < vm->bucket_cnt; i++) {
+        //     struct list *bucket = &vm->buckets[i];
+        //     printf("  Bucket %zu:\n", i);
+
+        //     for (struct list_elem *e = list_begin(bucket); e != list_end(bucket); e = list_next(e)) {
+        //         struct hash_elem *he = list_elem_to_hash_elem(e);
+        //         struct page *p = hash_entry(he, struct page, elem);
+
+        //         // 각 페이지 정보 출력
+        //         printf("    Page addr: %p, is_loaded: %d, writable: %d\n",
+        //                p->addr, p->is_loaded, p->writable);
+        //     }
+        // }
         return true;
+    }
 }
 
 bool

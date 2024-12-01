@@ -173,7 +173,7 @@ process_exit (void)
   {
     munmap (i);
   }
-  
+
   palloc_free_page (cur->fd_table);
 
 
@@ -509,7 +509,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       if (page == NULL)
         return false;
       // end
-
+      printf("load_segment\n");
+      page_insert(&thread_current()->vm, page);
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;

@@ -74,21 +74,25 @@ frame_allocate (enum palloc_flags flags)
 void
 frame_deallocate (struct frame *frame)
 {
-    lock_acquire (&frame_lock);
+    printf("111111111");
+    printf("[DEBUG] frame address: %p\n", frame);
+    printf("[DEBUG] frame->page address: %p\n", frame->page);
+    printf("[DEBUG] frame->page->is_loaded: %d\n", frame->page->is_loaded);
+    printf("[DEBUG] frame->page->vaddr: %p\n", frame->page->addr); // 페이지의 가상 주소
     if (frame != NULL)
-    {
-
-        // printf("frame_deallocate (struct frame *frame)##########################################\n");
-        // 프레임 정보 출력
-        // printf("[DEBUG] dellocating frame at: %p\n", frame);
-        // printf("[DEBUG] Frame physical address: %p\n", frame->page_addr);
+    {  printf("22222222222");
         frame->page->is_loaded = false;
+        printf("22222222222");
         pagedir_clear_page (frame->thread->pagedir, frame->page->addr);
+        printf("22222222222");
         palloc_free_page (frame->page_addr);
+        printf("22222222222");
         frame_delete (frame);
+        printf("22222222222");
         free (frame);
+        printf("22222222222");
     }
-    lock_release (&frame_lock);
+    printf("33333333");
 }
 
 struct frame *
