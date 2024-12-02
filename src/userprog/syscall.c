@@ -648,7 +648,7 @@ munmap (mapid_t mapping)
     return;
   }
 
-  for (e = list_begin (&mmap_file->page_list); e != list_end (&mmap_file->page_list); e = list_next (e))
+  for (e = list_begin (&mmap_file->page_list); e != list_end (&mmap_file->page_list);)
   {
     page = list_entry (e, struct page, mmap_elem);
     if ((page->is_load == true) && (pagedir_is_dirty (thread_current ()->pagedir, page->addr)))
