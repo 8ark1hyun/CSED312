@@ -23,7 +23,7 @@ struct page
     void *addr;
     struct frame *frame;
     bool writable;
-    bool is_load;
+    bool is_load; // physical memory의 load 여부 flag 
     uint32_t offset;
     uint32_t read_byte;
     uint32_t zero_byte;

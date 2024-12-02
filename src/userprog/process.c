@@ -165,8 +165,6 @@ process_exit (void)
   {
     close (i);
   }
-  palloc_free_page (cur->fd_table);
-
   file_close (cur->current_file);
   // end
 
@@ -175,7 +173,7 @@ process_exit (void)
   {
     munmap (i);
   }
-
+  palloc_free_page (cur->fd_table);
   vm_destroy (&cur->vm);
   // end
 
@@ -507,7 +505,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       if (page == NULL)
         return false;
       // end
-
+      page_insert(&thread_current()->vm, page);
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
@@ -542,6 +540,7 @@ setup_stack (void **esp)
           success = false;
           return success;
         }
+        page_insert(&thread_current()->vm, frame->page);
         *esp = PHYS_BASE;
       }
       else
@@ -630,7 +629,7 @@ pass_argument (char *file_name, void **esp)
   **(uint32_t **)esp = index; // argc
 
   *esp -= 4;
-  **(uint32_t **)esp = 0; // return address
+  **(uint32_t **)esp = 0; // return address]
 
   palloc_free_page (argv);
   palloc_free_page (argv_addr);
@@ -684,12 +683,16 @@ fault_handle (struct page *page)
     return success;
   }
 
-  if ((success == false) || (!install_page (page->addr, frame->page_addr, page->writable)))
+  if (success == false)
   {
     frame_deallocate (frame);
     return false;
   }
-
+  if (!install_page (page->addr, frame->page_addr, page->writable))
+  {
+    frame_deallocate (frame);
+    return false;
+  }
   page->is_load = true;
   return success;
 }

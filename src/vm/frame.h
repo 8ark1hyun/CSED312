@@ -18,7 +18,7 @@ void frame_table_init (void);
 void frame_insert (struct frame *frame);
 void frame_delete (struct frame *frame);
 struct frame *frame_allocate (enum palloc_flags flags);
-void frame_deallocate (struct frame *frame);
+void frame_deallocate (void *addr);
 struct frame *frame_find (void *addr);
 void evict (void);
 

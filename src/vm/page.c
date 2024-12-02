@@ -1,9 +1,11 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "vm/page.h"
 #include "userprog/syscall.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "filesys/file.h"
+#include "lib/kernel/hash.h"
 
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
 static bool vm_less_func (const struct hash_elem *e, const struct hash_elem *b, void *aux);
@@ -31,16 +33,14 @@ vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
 {
     struct page *page = hash_entry (e, struct page, elem);
     struct frame *frame;
-
+    
     if (page != NULL)
     {
+        frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
+
         if (page->is_load == true)
-        {
-            frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
-            if (frame != NULL)
-            {
-                frame_deallocate (frame);
-            }
+        {  
+            frame_deallocate (frame);
         }
         free (page);
     }
@@ -60,7 +60,7 @@ vm_destroy (struct hash *vm)
 
 bool
 page_insert (struct hash *vm, struct page *page)
-{
+{   
     if (hash_insert (vm, &page->elem) == NULL)
         return false;
     else
@@ -84,7 +84,7 @@ page_allocate (enum page_type type, void *addr, bool writable, bool is_load, uin
     if (page == NULL)
     {
         return NULL;
-    }
+    } 
     memset (page, 0, sizeof (struct page));
 
     page->type = type;

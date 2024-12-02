@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "vm/frame.h"
 #include "vm/swap.h"
 #include "threads/synch.h"
@@ -7,6 +8,9 @@
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
 #include "filesys/file.h"
+#include "threads/vaddr.h"
+#include "lib/kernel/bitmap.h"
+
 
 struct list frame_table;
 struct lock frame_lock;
@@ -64,9 +68,9 @@ frame_allocate (enum palloc_flags flags)
 }
 
 void
-frame_deallocate (struct frame *frame)
+frame_deallocate (void *addr)
 {
-    lock_acquire (&frame_lock);
+    struct frame *frame = frame_find(addr);
     if (frame != NULL)
     {
         frame->page->is_load = false;
@@ -75,7 +79,6 @@ frame_deallocate (struct frame *frame)
         frame_delete (frame);
         free (frame);
     }
-    lock_release (&frame_lock);
 }
 
 struct frame *
@@ -163,6 +166,6 @@ evict (void)
     {
         frame->page->swap_slot = swap_out (frame->page_addr);
     }
-
+    frame->page->is_load = false;
     frame_deallocate (frame);
 }

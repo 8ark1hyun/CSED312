@@ -329,13 +329,22 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
-  // System Calls - pintos 2
-  process_exit (); // process 종료
 
   struct thread *current_thread = thread_current ();
   struct thread *t;
   struct list_elem *elem;
-  
+
+  // if (current_thread -> exited) {
+  //     // printf("[DEBUG] thread_exit already called for thread: %p\n", current_thread);
+  //     return;
+  // }
+  current_thread->exited = true;
+
+  // System Calls - pintos 2
+  process_exit (); // process 종료
+
+
+
   sema_up (&current_thread->sema_wait); // 종료한 thread(process)의 sema_wait를 up하여 exit 완료 알림
 
   for (elem = list_begin (&current_thread->child_list); elem != list_end (&current_thread->child_list); elem = list_next (elem))

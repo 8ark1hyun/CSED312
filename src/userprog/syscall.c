@@ -29,9 +29,9 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  thread_current ()->esp = f->esp;
-
   check_valid_addr ((void *)(f->esp)); // 주소 유효성 검증
+
+  thread_current ()->esp = f->esp;
 
   int argv[3];
   switch (*(uint32_t *)(f->esp)) // syscall number에 따라
@@ -212,7 +212,6 @@ exec (const char *cmd_line, void *esp)
   while (length > 0)
   {
     bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
-    frame = frame_find (pg_round_down (cmd_addr));
     frame->pinning = false;
     length -= bytes;
     cmd_addr += bytes;
@@ -357,7 +356,7 @@ read (int fd, void *buffer, unsigned size, void *esp)
       {
         if (!stack_growth (buffer_addr))
         {
-            exit (-1);
+          exit (-1);
         }
       }
       else
@@ -402,7 +401,7 @@ read (int fd, void *buffer, unsigned size, void *esp)
 
   while (file_size > 0)
   {
-    frame = frame_find (buffer_addr);
+    frame = frame_find (pg_round_down (buffer_addr));
     frame->pinning = false;
     read_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
     file_size -= read_bytes;
@@ -435,10 +434,10 @@ write (int fd, const void *buffer, unsigned size, void *esp)
 
     if (page != NULL)
     {
-      if (page->is_load == false)
-      {
+      if(page->is_load == false)
+      { 
         if (!fault_handle (page))
-        {
+        { 
           exit (-1);
         }
       }
@@ -453,7 +452,7 @@ write (int fd, const void *buffer, unsigned size, void *esp)
       {
         if (!stack_growth (buffer_addr))
         {
-            exit (-1);
+          exit (-1);
         }
       }
       else
@@ -494,7 +493,7 @@ write (int fd, const void *buffer, unsigned size, void *esp)
 
   while (file_size > 0)
   {
-    frame = frame_find (buffer_addr);
+    frame = frame_find (pg_round_down (buffer_addr));
     frame->pinning = false;
     write_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
     file_size -= write_bytes;
@@ -659,7 +658,6 @@ munmap (mapid_t mapping)
       lock_release (&file_lock);
       frame_deallocate (pagedir_get_page (thread_current ()->pagedir, page->addr));
     }
-    page->is_load = false;
     e = list_remove (e);
   }
 
