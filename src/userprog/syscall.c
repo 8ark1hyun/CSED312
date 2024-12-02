@@ -585,10 +585,7 @@ mmap (int fd, void *addr)
   memset (mmap_file, 0, sizeof (struct mmap_file));
 
   lock_acquire (&file_lock);
-  if ((fd > 1) && (fd < thread_current ()->fd_max))
-  {
-    f = file_reopen (thread_current ()->fd_table[fd]);
-  }
+  f = file_reopen (thread_current ()->fd_table[fd]);
   file_size = file_length (f);
   lock_release (&file_lock);
   if (file_size == 0)
