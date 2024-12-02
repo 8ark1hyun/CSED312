@@ -503,7 +503,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       //     return false; 
       //   }
 
-      struct page *page = page_allocate (BINARY, upage, writable, ofs, page_read_bytes, page_zero_bytes, file);
+      struct page *page = page_allocate (BINARY, upage, writable, false, ofs, page_read_bytes, page_zero_bytes, file);
       if (page == NULL)
         return false;
       // end
@@ -536,7 +536,7 @@ setup_stack (void **esp)
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, frame->page_addr, true);
       if (success)
       {
-        frame->page = page_allocate (ANONYMOUS, ((uint8_t *) PHYS_BASE) - PGSIZE, true, 0, 0, 0, NULL);
+        frame->page = page_allocate (ANONYMOUS, ((uint8_t *) PHYS_BASE) - PGSIZE, true, true, 0, 0, 0, NULL);
         if (frame->page == NULL)
         {
           success = false;
@@ -690,6 +690,7 @@ fault_handle (struct page *page)
     return false;
   }
 
+  page->is_load = true;
   return success;
 }
 // end
@@ -713,7 +714,7 @@ stack_growth (void *addr)
     }
     else
     {
-      frame->page = page_allocate (ANONYMOUS, vaddr, true, 0, 0, 0, NULL);
+      frame->page = page_allocate (ANONYMOUS, vaddr, true, true, 0, 0, 0, NULL);
       if (frame->page == NULL)
       {
         success = false;

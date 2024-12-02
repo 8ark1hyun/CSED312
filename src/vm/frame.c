@@ -69,6 +69,7 @@ frame_deallocate (struct frame *frame)
     lock_acquire (&frame_lock);
     if (frame != NULL)
     {
+        frame->page->is_load = false;
         pagedir_clear_page (frame->thread->pagedir, frame->page->addr);
         palloc_free_page (frame->page_addr);
         frame_delete (frame);

@@ -163,10 +163,13 @@ exec (const char *cmd_line, void *esp)
     
     if (page != NULL)
     {
+      if (page->is_load == false)
+      {
         if (!fault_handle (page))
         {
           exit (-1);
         }
+      }
     }
     else
     {
@@ -336,10 +339,13 @@ read (int fd, void *buffer, unsigned size, void *esp)
 
     if (page != NULL)
     {
+      if (page->is_load == false)
+      {
         if (!fault_handle (page))
         {
           exit (-1);
         }
+      }
     }
     else
     {
@@ -429,10 +435,13 @@ write (int fd, const void *buffer, unsigned size, void *esp)
 
     if (page != NULL)
     {
+      if (page->is_load == false)
+      {
         if (!fault_handle (page))
         {
           exit (-1);
         }
+      }
     }
     else
     {
@@ -600,7 +609,7 @@ mmap (int fd, void *addr)
     page_read_bytes = file_size < PGSIZE ? file_size : PGSIZE;
     page_zero_bytes = PGSIZE - page_read_bytes;
 
-    page = page_allocate (FILE, addr, true, offset, page_read_bytes, page_zero_bytes, f);
+    page = page_allocate (FILE, addr, true, false, offset, page_read_bytes, page_zero_bytes, f);
     if (page == NULL)
     {
       return false;
@@ -643,13 +652,14 @@ munmap (mapid_t mapping)
   for (e = list_begin (&mmap_file->page_list); e != list_end (&mmap_file->page_list); e = list_next (e))
   {
     page = list_entry (e, struct page, mmap_elem);
-    if ((pagedir_is_dirty (thread_current ()->pagedir, page->addr)))
+    if ((page->is_load == true) && (pagedir_is_dirty (thread_current ()->pagedir, page->addr)))
     {
       lock_acquire (&file_lock);
       file_write_at (page->file, page->addr, page->read_byte, page->offset);
       lock_release (&file_lock);
       frame_deallocate (pagedir_get_page (thread_current ()->pagedir, page->addr));
     }
+    page->is_load = false;
     e = list_remove (e);
   }
 

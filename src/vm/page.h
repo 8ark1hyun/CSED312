@@ -23,6 +23,7 @@ struct page
     void *addr;
     struct frame *frame;
     bool writable;
+    bool is_load;
     uint32_t offset;
     uint32_t read_byte;
     uint32_t zero_byte;
@@ -45,7 +46,7 @@ void vm_init (struct hash *vm);
 void vm_destroy (struct hash *vm);
 bool page_insert (struct hash *vm, struct page *page);
 bool page_delete (struct page *page);
-struct page *page_allocate (enum page_type type, void *addr, bool writable, uint32_t offset, uint32_t read_byte, uint32_t zero_byte, struct file *file);
+struct page *page_allocate (enum page_type type, void *addr, bool writable, bool is_load, uint32_t offset, uint32_t read_byte, uint32_t zero_byte, struct file *file);
 void page_deallocate (struct page *page);
 struct page *page_find (void *addr);
 bool load_file (void *addr, struct page *page);

@@ -34,10 +34,13 @@ vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
 
     if (page != NULL)
     {
-        frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
-        if (frame != NULL)
+        if (page->is_load == true)
         {
-            frame_deallocate (frame);
+            frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
+            if (frame != NULL)
+            {
+                frame_deallocate (frame);
+            }
         }
         free (page);
     }
@@ -74,7 +77,7 @@ page_delete (struct page *page)
 }
 
 struct page *
-page_allocate (enum page_type type, void *addr, bool writable, uint32_t offset, uint32_t read_byte, uint32_t zero_byte, struct file *file)
+page_allocate (enum page_type type, void *addr, bool writable, bool is_load, uint32_t offset, uint32_t read_byte, uint32_t zero_byte, struct file *file)
 {
     lock_acquire (&frame_lock);
     struct page *page = (struct page*) malloc (sizeof (struct page));
@@ -88,6 +91,7 @@ page_allocate (enum page_type type, void *addr, bool writable, uint32_t offset, 
     page->addr = addr;
     page->frame = NULL;
     page->writable = writable;
+    page->is_load = is_load;
     page->offset = offset;
     page->read_byte = read_byte;
     page->zero_byte = zero_byte;
