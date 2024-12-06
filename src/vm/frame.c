@@ -11,12 +11,12 @@
 #include "threads/vaddr.h"
 #include "lib/kernel/bitmap.h"
 
-
+extern struct lock file_lock;
 struct list frame_table;
 struct lock frame_lock;
 struct list_elem *frame_clock;
 
-extern struct lock file_lock;
+
 
 void
 frame_table_init (void)
@@ -29,9 +29,9 @@ frame_table_init (void)
 void
 frame_insert (struct frame *frame)
 {
-    lock_acquire (&frame_lock);
+    // lock_acquire (&frame_lock);
     list_push_back (&frame_table, &frame->elem);
-    lock_release (&frame_lock);
+    // lock_release (&frame_lock);
 }
 
 void
@@ -45,17 +45,17 @@ frame_delete (struct frame *frame)
 
 struct frame *
 frame_allocate (enum palloc_flags flags)
-{
+{// printf("frame_allocate()\n");
     struct frame *frame;
-
+// printf("flags ; %d" , flags);
     frame = (struct frame *) malloc (sizeof (struct frame));
     if (frame == NULL)
         return NULL;
     memset (frame, 0, sizeof (struct frame));
 
     frame->page_addr = palloc_get_page (flags);
-    while (frame->page_addr == NULL)
-    {
+    while (!(frame->page_addr))
+    {   
         evict ();
         frame->page_addr = palloc_get_page (flags);
     }
@@ -101,34 +101,38 @@ frame_find (void *addr)
 
 void
 evict (void)
-{
+{//printf("evict()\n");
     struct frame *frame;
     bool dirty;
-
+    struct list_elem *e;
     while (true)
     {
         if ((frame_clock == NULL) || (frame_clock == list_end (&frame_table)))
         {
             if (!list_empty (&frame_table))
-            {
+            {   // printf("11111");
                 frame_clock = list_begin (&frame_table);
+                e = list_begin(&frame_table);
             }
             else
-            {
+            {// printf("2222");
                 frame = NULL;
                 break;
             }
         }
         else
-        {
+        {   // printf("list_next()\n");
+            // printf("frame_clock: %x", frame_clock);
             frame_clock = list_next (frame_clock);
+            // printf("list_next()end\n");
             if (frame_clock == list_end (&frame_table))
             {
                 continue;
             }
+            e = frame_clock;
         }
 
-        frame = list_entry (frame_clock, struct frame, elem);
+        frame = list_entry (e, struct frame, elem);
 
         if (frame->pinning == false)
         {
@@ -166,6 +170,10 @@ evict (void)
     {
         frame->page->swap_slot = swap_out (frame->page_addr);
     }
+    
+    pagedir_clear_page(frame->thread->pagedir, frame->page->addr);
+	palloc_free_page(frame->page_addr);
+    frame_delete (frame);
     frame->page->is_load = false;
-    frame_deallocate (frame);
+    free(frame);
 }

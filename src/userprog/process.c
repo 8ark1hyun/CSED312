@@ -519,7 +519,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
    user virtual memory. */
 static bool
 setup_stack (void **esp) 
-{
+{// printf("setup_stack");
   // uint8_t *kpage;
   bool success = false;
   
@@ -663,11 +663,12 @@ get_child (pid_t pid)
 // Lazy Loading - pintos 3
 bool
 fault_handle (struct page *page)
-{
+{// printf("fault_handle()\n");
   bool success = false;
   struct frame *frame;
   
-  frame = frame_allocate (PAL_USER | PAL_ZERO);
+  frame = frame_allocate (PAL_USER);
+    // printf("frame_allocate() end\n");
   frame->page = page;
 
   if (page->type == BINARY || page->type == FILE)
@@ -694,6 +695,7 @@ fault_handle (struct page *page)
     return false;
   }
   page->is_load = true;
+
   return success;
 }
 // end
@@ -701,7 +703,7 @@ fault_handle (struct page *page)
 // Stack Growth - pintos 3
 bool
 stack_growth (void *addr)
-{
+{//printf("stack_grownth()");
   bool success = false;
   struct frame *frame;
   void *vaddr = pg_round_down (addr);
