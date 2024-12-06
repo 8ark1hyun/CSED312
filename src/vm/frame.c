@@ -29,9 +29,7 @@ frame_table_init (void)
 void
 frame_insert (struct frame *frame)
 {
-    lock_acquire (&frame_lock);
     list_push_back (&frame_table, &frame->elem);
-    lock_release (&frame_lock);
 }
 
 void
@@ -48,6 +46,7 @@ frame_allocate (enum palloc_flags flags)
 {
     struct frame *frame;
 
+    lock_acquire (&frame_lock);
     frame = (struct frame *) malloc (sizeof (struct frame));
     if (frame == NULL)
         return NULL;
@@ -63,6 +62,7 @@ frame_allocate (enum palloc_flags flags)
     frame->thread = thread_current ();
     frame->pinning = false;
     frame_insert (frame);
+    lock_release (&frame_lock);
 
     return frame;
 }
@@ -71,6 +71,8 @@ void
 frame_deallocate (void *addr)
 {
     struct frame *frame = frame_find(addr);
+
+    lock_acquire (&frame_lock);
     if (frame != NULL)
     {
         frame->page->is_load = false;
@@ -79,6 +81,7 @@ frame_deallocate (void *addr)
         frame_delete (frame);
         free (frame);
     }
+    lock_release (&frame_lock);
 }
 
 struct frame *
@@ -166,6 +169,7 @@ evict (void)
     {
         frame->page->swap_slot = swap_out (frame->page_addr);
     }
-    frame->page->is_load = false;
+    lock_release (&frame_lock);
     frame_deallocate (frame);
+    lock_acquire (&frame_lock);
 }

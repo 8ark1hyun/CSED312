@@ -11,7 +11,6 @@ static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
 static bool vm_less_func (const struct hash_elem *e, const struct hash_elem *b, void *aux);
 static void vm_destroy_func (struct hash_elem *e, void *aux);
 
-extern struct lock frame_lock;
 extern struct lock file_lock;
 
 static unsigned
@@ -79,7 +78,6 @@ page_delete (struct page *page)
 struct page *
 page_allocate (enum page_type type, void *addr, bool writable, bool is_load, uint32_t offset, uint32_t read_byte, uint32_t zero_byte, struct file *file)
 {
-    lock_acquire (&frame_lock);
     struct page *page = (struct page*) malloc (sizeof (struct page));
     if (page == NULL)
     {
@@ -99,7 +97,6 @@ page_allocate (enum page_type type, void *addr, bool writable, bool is_load, uin
     page->swap_slot = 0;
 
     page_insert (&thread_current ()->vm, page);
-    lock_release (&frame_lock);
 
     return page;
 }

@@ -304,7 +304,7 @@ bitmap_scan (const struct bitmap *b, size_t start, size_t cnt, bool value)
       size_t i;
       for (i = start; i <= last; i++)
         if (!bitmap_contains (b, i, cnt, !value))
-          return i; 
+          return i;
     }
   return BITMAP_ERROR;
 }

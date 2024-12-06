@@ -181,7 +181,7 @@ exec (const char *cmd_line, void *esp)
       {
         if (!stack_growth (cmd_addr))
         {
-            exit (-1);
+          exit (-1);
         }
       }
       else
@@ -190,9 +190,9 @@ exec (const char *cmd_line, void *esp)
       }
     }
 
-    bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
     frame = frame_find (pg_round_down (cmd_addr));
     frame->pinning = true;
+    bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
     length -= bytes;
     cmd_addr += bytes;
   }
@@ -211,8 +211,9 @@ exec (const char *cmd_line, void *esp)
 
   while (length > 0)
   {
-    bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
+    frame = frame_find (pg_round_down (cmd_addr));
     frame->pinning = false;
+    bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
     length -= bytes;
     cmd_addr += bytes;
   }
@@ -630,6 +631,7 @@ munmap (mapid_t mapping)
   struct mmap_file *mmap_file = NULL;
   struct page *page;
   struct list_elem *e;
+  void *addr;
 
   for (e = list_begin (&thread_current ()->mmap_file_list); e != list_end (&thread_current ()->mmap_file_list); e = list_next (e))
   {
@@ -653,7 +655,8 @@ munmap (mapid_t mapping)
       lock_acquire (&file_lock);
       file_write_at (page->file, page->addr, page->read_byte, page->offset);
       lock_release (&file_lock);
-      frame_deallocate (pagedir_get_page (thread_current ()->pagedir, page->addr));
+      addr = pagedir_get_page (thread_current ()->pagedir, page->addr);
+      frame_deallocate (addr);
     }
     page->is_load = false;
     e = list_remove (e);
