@@ -559,69 +559,128 @@ close (int fd)
 mapid_t
 mmap (int fd, void *addr)
 {
-  int file_size;
-  int offset = 0;
-  struct mmap_file *mmap_file;
-  struct file *f = NULL;
-  struct page *page;
-  size_t page_read_bytes;
-  size_t page_zero_bytes;
+    if(is_kernel_vaddr(addr))
+    exit(-1);
+  // addr이 0인 경우, addr이 page 정렬되지 않은 경우
+  if(!addr || pg_ofs(addr) != 0 || (int)addr%PGSIZE !=0)
+    return -1;
 
-  if (is_kernel_vaddr (addr))
-  {
-    exit (-1);
-  }
+  // for vm_entry
+  int file_remained;
+  size_t offset = 0;
 
-  if ((addr == NULL) || (pg_ofs (addr) != 0) || ((int) addr % PGSIZE != 0))
+  // 1. mmap_file 구조체 생성 및 메모리 할당
+	struct mmap_file *mfe = (struct mmap_file *)malloc(sizeof(struct mmap_file));
+  if (!mfe) return -1;   
+	memset(mfe, 0, sizeof(struct mmap_file));
+
+	// 2. file open
+  lock_acquire(&file_lock);
+  struct file* file = file_reopen(thread_current ()->fd_table[fd]);
+  file_remained = file_length(file);
+  lock_release(&file_lock);
+  // fd로 열린 파일의 길이가 0바이트인 경우
+  if (!file_remained) 
   {
     return -1;
   }
 
-  mmap_file = (struct mmap_file *) malloc (sizeof (struct mmap_file));
-  if (mmap_file == NULL)
-  {
-    return -1;
-  }
-  memset (mmap_file, 0, sizeof (struct mmap_file));
 
-  lock_acquire (&file_lock);
-  f = file_reopen (thread_current ()->fd_table[fd]);
-  file_size = file_length (f);
-  lock_release (&file_lock);
-  if (file_size == 0)
-  {
-    return -1;
-  }
+	// 3. vm_entry 할당
+	list_init(&mfe->page_list);	
+  
+	while(file_remained > 0)// file 다 읽을 때 까지 반복
+	{
+		// vm entry 할당
+    if (page_find(addr)) return -1;
 
-  list_init (&mmap_file->page_list);
+    size_t page_read_bytes = file_remained < PGSIZE ? file_remained : PGSIZE;
+    size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-  while (file_size > 0)
-  {
-    if (page_find (addr))
-    {
-      return -1;
-    }
-
-    page_read_bytes = file_size < PGSIZE ? file_size : PGSIZE;
-    page_zero_bytes = PGSIZE - page_read_bytes;
-
-    page = page_allocate (FILE, addr, true, false, offset, page_read_bytes, page_zero_bytes, f);
-    if (page == NULL)
-    {
+    struct page* vme = page_allocate(FILE, addr, true, false, offset, page_read_bytes, page_zero_bytes, file);
+    if (!vme) 
       return false;
-    }
-    list_push_back (&mmap_file->page_list, &page->mmap_elem);
-    
+
+		// 2. vme_list에 mmap_elem과 연결된 vm entry 추가
+    list_push_back(&mfe->page_list, &vme->mmap_elem);
+		// 3. current thread에 대해 vme insert
+    page_insert(&thread_current()->vm, vme);
+		
+    // 4. file addr, offset 업데이트 (page size만큼)
     addr += PGSIZE;
     offset += PGSIZE;
-    file_size -= PGSIZE;
-  }
+		// 5. file에 남은 길이 업데이트 (page size만큼)
+    file_remained -= PGSIZE;
+	}
 
-  list_push_back (&thread_current ()->mmap_file_list, &mmap_file->elem);
-  mmap_file->mapid = thread_current ()->mmap_max++;
-  mmap_file->file = f;
+  // 4. mmap_list, mmap_next 관리
+  mfe->mapid = thread_current()->mmap_max++;
+  list_push_back(&thread_current()->mmap_file_list, &mfe->elem);
+  mfe->file = file;
+	return mfe->mapid;
+  // int file_size;
+  // int offset = 0;
+  // struct mmap_file *mmap_file;
+  // struct file *f = NULL;
+  // struct page *page;
+  // size_t page_read_bytes;
+  // size_t page_zero_bytes;
 
-  return mmap_file->mapid;
+  // if (is_kernel_vaddr (addr))
+  // {
+  //   exit (-1);
+  // }
+
+  // if ((addr == NULL) || (pg_ofs (addr) != 0) || ((int) addr % PGSIZE != 0))
+  // {
+  //   return -1;
+  // }
+
+  // mmap_file = (struct mmap_file *) malloc (sizeof (struct mmap_file));
+  // if (mmap_file == NULL)
+  // {
+  //   return -1;
+  // }
+  // memset (mmap_file, 0, sizeof (struct mmap_file));
+
+  // lock_acquire (&file_lock);
+  // f = file_reopen (thread_current ()->fd_table[fd]);
+  // file_size = file_length (f);
+  // lock_release (&file_lock);
+  // if (file_size == 0)
+  // {
+  //   return -1;
+  // }
+
+  // list_init (&mmap_file->page_list);
+
+  // while (file_size > 0)
+  // {
+  //   if (page_find (addr))
+  //   {
+  //     return -1;
+  //   }
+
+  //   page_read_bytes = file_size < PGSIZE ? file_size : PGSIZE;
+  //   page_zero_bytes = PGSIZE - page_read_bytes;
+
+  //   page = page_allocate (FILE, addr, true, false, offset, page_read_bytes, page_zero_bytes, f);
+  //   if (page == NULL)
+  //   {
+  //     return false;
+  //   }
+  //   list_push_back (&mmap_file->page_list, &page->mmap_elem);
+    
+  //   addr += PGSIZE;
+  //   offset += PGSIZE;
+  //   file_size -= PGSIZE;
+  // }
+
+  // list_push_back (&thread_current ()->mmap_file_list, &mmap_file->elem);
+  // mmap_file->mapid = thread_current ()->mmap_max++;
+  // mmap_file->file = f;
+
+  // return mmap_file->mapid;
 }
 
 void

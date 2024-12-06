@@ -170,7 +170,7 @@ process_exit (void)
 
   // pintos 3
   for (i = 0; i <= cur->mmap_max; i++)
-  {
+  { 
     munmap (i);
   }
   palloc_free_page (cur->fd_table);
