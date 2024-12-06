@@ -11,12 +11,11 @@
 #include "threads/vaddr.h"
 #include "lib/kernel/bitmap.h"
 
+extern struct lock file_lock;
 
 struct list frame_table;
 struct lock frame_lock;
 struct list_elem *frame_clock;
-
-extern struct lock file_lock;
 
 void
 frame_table_init (void)
@@ -46,7 +45,6 @@ frame_allocate (enum palloc_flags flags)
 {
     struct frame *frame;
 
-    lock_acquire (&frame_lock);
     frame = (struct frame *) malloc (sizeof (struct frame));
     if (frame == NULL)
         return NULL;
@@ -54,7 +52,7 @@ frame_allocate (enum palloc_flags flags)
 
     frame->page_addr = palloc_get_page (flags);
     while (frame->page_addr == NULL)
-    {
+    {   
         evict ();
         frame->page_addr = palloc_get_page (flags);
     }
@@ -62,7 +60,6 @@ frame_allocate (enum palloc_flags flags)
     frame->thread = thread_current ();
     frame->pinning = false;
     frame_insert (frame);
-    lock_release (&frame_lock);
 
     return frame;
 }
@@ -72,7 +69,6 @@ frame_deallocate (void *addr)
 {
     struct frame *frame = frame_find(addr);
 
-    lock_acquire (&frame_lock);
     if (frame != NULL)
     {
         frame->page->is_load = false;
@@ -81,7 +77,6 @@ frame_deallocate (void *addr)
         frame_delete (frame);
         free (frame);
     }
-    lock_release (&frame_lock);
 }
 
 struct frame *
@@ -107,7 +102,6 @@ evict (void)
 {
     struct frame *frame;
     bool dirty;
-
     while (true)
     {
         if ((frame_clock == NULL) || (frame_clock == list_end (&frame_table)))
@@ -169,7 +163,10 @@ evict (void)
     {
         frame->page->swap_slot = swap_out (frame->page_addr);
     }
-    lock_release (&frame_lock);
-    frame_deallocate (frame);
-    lock_acquire (&frame_lock);
+    
+    pagedir_clear_page(frame->thread->pagedir, frame->page->addr);
+	palloc_free_page(frame->page_addr);
+    frame_delete (frame);
+    frame->page->is_load = false;
+    free(frame);
 }

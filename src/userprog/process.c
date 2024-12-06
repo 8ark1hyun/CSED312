@@ -170,7 +170,7 @@ process_exit (void)
 
   // pintos 3
   for (i = 0; i <= cur->mmap_max; i++)
-  {
+  { 
     munmap (i);
   }
   palloc_free_page (cur->fd_table);
@@ -667,7 +667,7 @@ fault_handle (struct page *page)
   bool success = false;
   struct frame *frame;
   
-  frame = frame_allocate (PAL_USER | PAL_ZERO);
+  frame = frame_allocate (PAL_USER);
   frame->page = page;
 
   if (page->type == BINARY || page->type == FILE)
@@ -694,6 +694,7 @@ fault_handle (struct page *page)
     return false;
   }
   page->is_load = true;
+
   return success;
 }
 // end

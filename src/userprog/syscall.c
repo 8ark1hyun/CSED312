@@ -572,7 +572,6 @@ mmap (int fd, void *addr)
   {
     exit (-1);
   }
-
   if ((addr == NULL) || (pg_ofs (addr) != 0) || ((int) addr % PGSIZE != 0))
   {
     return -1;
@@ -618,8 +617,8 @@ mmap (int fd, void *addr)
     file_size -= PGSIZE;
   }
 
-  list_push_back (&thread_current ()->mmap_file_list, &mmap_file->elem);
   mmap_file->mapid = thread_current ()->mmap_max++;
+  list_push_back (&thread_current ()->mmap_file_list, &mmap_file->elem);
   mmap_file->file = f;
 
   return mmap_file->mapid;
