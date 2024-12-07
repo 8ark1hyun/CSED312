@@ -5,6 +5,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
+#include "threads/synch.h"
 #include "userprog/process.h"
 #include "userprog/pagedir.h"
 #include "vm/frame.h"

@@ -4,6 +4,7 @@
 #include "userprog/syscall.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 #include "filesys/file.h"
 #include "lib/kernel/hash.h"
 
@@ -31,15 +32,14 @@ static void
 vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
 {
     struct page *page = hash_entry (e, struct page, elem);
-    struct frame *frame;
+    void *addr;
     
     if (page != NULL)
     {
-        frame = pagedir_get_page (thread_current ()->pagedir, page->addr);
-
         if (page->is_load == true)
-        {  
-            frame_deallocate (frame);
+        {
+            addr = pagedir_get_page (thread_current ()->pagedir, page->addr);
+            frame_deallocate (addr);
         }
         free (page);
     }
@@ -104,13 +104,12 @@ page_allocate (enum page_type type, void *addr, bool writable, bool is_load, uin
 void
 page_deallocate (struct page *page)
 {
-    if (page != NULL)
+    void *addr;
+
+    if (page_delete (page) == true)
     {
-        if (page->frame != NULL)
-        {
-            frame_deallocate (page->frame);
-        }
-        page_delete (page);
+        addr = pagedir_get_page (thread_current ()->pagedir, page->addr);
+        frame_deallocate (addr);
         free (page);
     }
 }

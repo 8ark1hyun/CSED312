@@ -36,7 +36,7 @@ frame_delete (struct frame *frame)
 {
     if (frame_clock != &frame->elem)
         list_remove (&frame->elem);
-    else
+    else if (frame_clock == &frame->elem)
         frame_clock = list_remove (frame_clock);
 }
 
@@ -45,6 +45,7 @@ frame_allocate (enum palloc_flags flags)
 {
     struct frame *frame;
 
+    lock_acquire (&frame_lock);
     frame = (struct frame *) malloc (sizeof (struct frame));
     if (frame == NULL)
         return NULL;
@@ -60,6 +61,7 @@ frame_allocate (enum palloc_flags flags)
     frame->thread = thread_current ();
     frame->pinning = false;
     frame_insert (frame);
+    lock_release (&frame_lock);
 
     return frame;
 }
@@ -67,8 +69,23 @@ frame_allocate (enum palloc_flags flags)
 void
 frame_deallocate (void *addr)
 {
-    struct frame *frame = frame_find(addr);
+    struct frame *frame;
+    struct list_elem *e;
 
+    for (e = list_begin (&frame_table); e != list_end (&frame_table); e = list_next (e))
+    {
+        frame = list_entry (e, struct frame, elem);
+        if (frame->page_addr == addr)
+        {
+            break;
+        }
+        else
+        {
+            frame = NULL;
+        }
+    }
+
+    lock_acquire (&frame_lock);
     if (frame != NULL)
     {
         frame->page->is_load = false;
@@ -77,6 +94,7 @@ frame_deallocate (void *addr)
         frame_delete (frame);
         free (frame);
     }
+    lock_release (&frame_lock);
 }
 
 struct frame *
@@ -102,6 +120,7 @@ evict (void)
 {
     struct frame *frame;
     bool dirty;
+
     while (true)
     {
         if ((frame_clock == NULL) || (frame_clock == list_end (&frame_table)))

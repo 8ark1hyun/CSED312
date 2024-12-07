@@ -540,12 +540,12 @@ setup_stack (void **esp)
           success = false;
           return success;
         }
-        page_insert(&thread_current()->vm, frame->page);
+        page_insert (&thread_current()->vm, frame->page);
         *esp = PHYS_BASE;
       }
       else
       {
-        frame_deallocate (frame);
+        frame_deallocate (frame->page_addr);
       }
     }
 
@@ -685,12 +685,12 @@ fault_handle (struct page *page)
 
   if (success == false)
   {
-    frame_deallocate (frame);
+    frame_deallocate (frame->page_addr);
     return false;
   }
   if (!install_page (page->addr, frame->page_addr, page->writable))
   {
-    frame_deallocate (frame);
+    frame_deallocate (frame->page_addr);
     return false;
   }
   page->is_load = true;
@@ -713,7 +713,7 @@ stack_growth (void *addr)
     success = install_page (vaddr, frame->page_addr, true);
     if (success == false)
     {
-      frame_deallocate (frame);
+      frame_deallocate (frame->page_addr);
       return success;
     }
     else
