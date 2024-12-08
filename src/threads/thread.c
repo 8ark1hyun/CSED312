@@ -581,8 +581,8 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init (&t->child_list);
 #endif
 #ifdef VM
-  list_init (&t->mmap_file_list);
-  t->mmap_max = 0;
+  list_init (&t->mmap_file_list); // mmap_file_list 초기화
+  t->mmap_max = 0;                // mmap_max 값 초기화
 #endif
 
   old_level = intr_disable ();
