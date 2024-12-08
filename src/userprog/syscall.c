@@ -311,7 +311,7 @@ filesize (int fd)
   
   lock_acquire (&file_lock); // lock 획득
 
-  if (fd < thread_current ()->fd_max)
+  if ((fd > 1) && (fd < thread_current ()->fd_max))
   {
     f = thread_current ()->fd_table[fd];
     lock_release (&file_lock); // lock 해제
@@ -524,7 +524,7 @@ seek (int fd, unsigned position)
 
   lock_acquire (&file_lock); // lock 획득
 
-  if (fd < thread_current ()->fd_max)
+  if ((fd > 1) && (fd < thread_current ()->fd_max))
   {
     f = thread_current ()->fd_table[fd];
     file_seek (f, position);
@@ -542,7 +542,7 @@ tell (int fd)
   struct file *f;
 
   lock_acquire (&file_lock);
-  if (fd < thread_current ()->fd_max)
+  if ((fd > 1) && (fd < thread_current ()->fd_max))
   {
     f = thread_current ()->fd_table[fd];
     lock_release (&file_lock);
@@ -560,7 +560,7 @@ close (int fd)
 {
   struct file *f;
 
-  if (fd < thread_current ()->fd_max)
+  if ((fd > 1) && (fd < thread_current ()->fd_max))
   {
     f = thread_current ()->fd_table[fd];
     file_close (f);
