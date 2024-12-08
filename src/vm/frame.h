@@ -7,11 +7,11 @@
 
 struct frame
 {
-    void *page_addr;
-    struct page *page;
-    struct thread *thread;
-    struct list_elem elem;
-    bool pinning;
+    void *page_addr;        // Frame Address
+    struct page *page;      // Page
+    struct thread *thread;  // Thread
+    struct list_elem elem;  // Frame Table List element
+    bool pinning;           // Pinning for Swapping
 };
 
 void frame_table_init (void);

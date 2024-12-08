@@ -155,23 +155,26 @@ page_fault (struct intr_frame *f)
    write = (f->error_code & PF_W) != 0;
    user = (f->error_code & PF_U) != 0;
 
+   // Lazy Loading & Stack Growth - pintos 3
+   // 존재하는 page에 유효하지 않은 접근(ex, 권한 오류)을 했거나,
+   // fault가 발생한 주소가 커널 가상 주소인 경우
    if (!not_present || is_kernel_vaddr (fault_addr))
    {
       if (lock_held_by_current_thread (&frame_lock))
       {
-         lock_release (&frame_lock);
+         lock_release (&frame_lock); // lock을 가지고 있으면 해제
       }
-      exit (-1);
+      exit (-1); // 종료
    }
 
-   struct page *page = page_find (fault_addr);
-   void *esp = user ? f->esp : thread_current ()->esp;
+   struct page *page = page_find (fault_addr); // page 탐색
+   void *esp = user ? f->esp : thread_current ()->esp; // stack top address
 
-   if (page != NULL)
+   if (page != NULL) // page 탐색
    {
-      if (!fault_handle (page))
+      if (!fault_handle (page)) // fault 처리 (page를 memory에 load)
       {
-         exit (-1);
+         exit (-1); // 실패 시 종료
       }
    }
    else
@@ -180,11 +183,12 @@ page_fault (struct intr_frame *f)
       uint32_t max = 0x800000;
       uint32_t stack_top_addr = base - max;
 
+      // 스택 포인터로부터 일정 범위 내에 있으며, 스택 크기가 최대 한도 내인 경우
       if ((fault_addr >= (esp - 32)) && ((uint32_t)fault_addr >= stack_top_addr))
       {
-         if (!stack_growth (fault_addr))
+         if (!stack_growth (fault_addr)) // 스택 확장
          {
-            exit (-1);
+            exit (-1); // 실패 시 종료
          }
          else
          {
@@ -193,9 +197,10 @@ page_fault (struct intr_frame *f)
       }
       else
       {
-         exit (-1);
+         exit (-1); // 종료
       }
    }
+   // end
   
    /* To implement virtual memory, delete the rest of the function
       body, and replace it with code that brings in the page to

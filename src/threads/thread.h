@@ -130,11 +130,11 @@ struct thread
     int fd_max;                          // 최대 file descriptor 수
 #endif
 #ifdef VM
-    struct hash vm;
-    void *esp;
+    struct hash vm;                      // Supplemental Page Table
+    void *esp;                           // Stack Top Address
 
-    struct list mmap_file_list;
-    int mmap_max;
+    struct list mmap_file_list;          // Memory Mapped File List
+    int mmap_max;                        // Number of Memory Mapped File
 #endif
 
     /* Owned by thread.c. */

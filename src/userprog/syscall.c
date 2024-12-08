@@ -32,7 +32,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
   check_valid_addr ((void *)(f->esp)); // 주소 유효성 검증
 
+  // Stack Growth - pintos 3
   thread_current ()->esp = f->esp;
+  // end
 
   int argv[3];
   switch (*(uint32_t *)(f->esp)) // syscall number에 따라
@@ -109,10 +111,12 @@ check_valid_addr (const void *addr)
     exit (-1); // 유효한 주소가 아닌 경우 exit
   }*/
 
+  // Lazy Loading & Stack Growth - pintos 3
   if ((addr == NULL) || (is_user_vaddr (addr) == false))
   {
     exit (-1); // 유효한 주소가 아닌 경우 exit
   }
+  // end
 }
 
 void
@@ -158,17 +162,18 @@ exec (const char *cmd_line, void *esp)
 
 	check_valid_addr (cmd_line); // 주소 유효성 검증
 
+  // 접근하는 모든 주소에 대응되는 page와 매핑된 frame에 대하여 반복
   while (length > 0)
   {
-    page = page_find (pg_round_down (cmd_addr));
+    page = page_find (pg_round_down (cmd_addr)); // page 단위로 주소 내림
     
     if (page != NULL)
     {
-      if (page->is_load == false)
+      if (page->is_load == false) // page가 load되지 않은 경우
       {
-        if (!fault_handle (page))
+        if (!fault_handle (page)) // fault 처리 (page를 memory에 load)
         {
-          exit (-1);
+          exit (-1); // 실패 시 종료
         }
       }
     }
@@ -178,21 +183,22 @@ exec (const char *cmd_line, void *esp)
       uint32_t max = 0x800000;
       uint32_t stack_top_addr = base - max;
 
+      // 스택 포인터로부터 일정 범위 내에 있으며, 스택 크기가 최대 한도 내인 경우
       if ((cmd_addr >= (esp - 32)) && ((uint32_t)cmd_addr >= stack_top_addr))
       {
-        if (!stack_growth (cmd_addr))
+        if (!stack_growth (cmd_addr)) // 스택 확장
         {
-          exit (-1);
+          exit (-1); // 실패 시 종료
         }
       }
       else
       {
-        exit (-1);
+        exit (-1); // 종료
       }
     }
 
-    frame = frame_find (pg_round_down (cmd_addr));
-    frame->pinning = true;
+    frame = frame_find (pg_round_down (cmd_addr)); // page 단위로 주소 내림하여 frame 탐색
+    frame->pinning = true; // pinning 설정
     bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
     length -= bytes;
     cmd_addr += bytes;
@@ -210,10 +216,11 @@ exec (const char *cmd_line, void *esp)
   length = strlen (cmd_line) + 1;
   cmd_addr = (void *) cmd_line;
 
+  // 접근하는 모든 주소에 대응되는 page와 매핑된 frame에 대하여 반복
   while (length > 0)
   {
-    frame = frame_find (pg_round_down (cmd_addr));
-    frame->pinning = false;
+    frame = frame_find (pg_round_down (cmd_addr)); // page 단위로 주소 내림하여 frame 탐색
+    frame->pinning = false; // pinning 해제
     bytes = (length > PGSIZE - pg_ofs (cmd_addr)) ? PGSIZE - pg_ofs (cmd_addr) : length;
     length -= bytes;
     cmd_addr += bytes;
@@ -336,15 +343,15 @@ read (int fd, void *buffer, unsigned size, void *esp)
 
   while (file_size > 0)
   {
-    page = page_find (pg_round_down (buffer_addr));
+    page = page_find (pg_round_down (buffer_addr)); // page 단위로 주소 내림
 
     if (page != NULL)
     {
-      if (page->is_load == false)
+      if (page->is_load == false) // page가 load되지 않은 경우
       {
-        if (!fault_handle (page))
+        if (!fault_handle (page)) // fault 처리 (page를 memory에 load)
         {
-          exit (-1);
+          exit (-1); // 실패 시 종료
         }
       }
     }
@@ -354,21 +361,22 @@ read (int fd, void *buffer, unsigned size, void *esp)
       uint32_t max = 0x800000;
       uint32_t stack_top_addr = base - max;
 
+      // 스택 포인터로부터 일정 범위 내에 있으며, 스택 크기가 최대 한도 내인 경우
       if ((buffer_addr >= (esp - 32)) && ((uint32_t)buffer_addr >= stack_top_addr))
       {
-        if (!stack_growth (buffer_addr))
+        if (!stack_growth (buffer_addr)) // 스택 확장
         {
-          exit (-1);
+          exit (-1); // 실패 시 종료
         }
       }
       else
       {
-        exit (-1);
+        exit (-1); // 종료
       }
     }    
 
-    frame = frame_find (pg_round_down (buffer_addr));
-    frame->pinning = true;
+    frame = frame_find (pg_round_down (buffer_addr)); // page 단위로 주소 내림하여 frame 탐색
+    frame->pinning = true; // pinning 설정
     read_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
     file_size -= read_bytes;
     buffer_addr += read_bytes;
@@ -401,10 +409,11 @@ read (int fd, void *buffer, unsigned size, void *esp)
   file_size = size;
   buffer_addr = buffer;
 
+  // 접근하는 모든 주소에 대응되는 page와 매핑된 frame에 대하여 반복
   while (file_size > 0)
   {
-    frame = frame_find (pg_round_down (buffer_addr));
-    frame->pinning = false;
+    frame = frame_find (pg_round_down (buffer_addr)); // page 단위로 주소 내림하여 frame 탐색
+    frame->pinning = false; // pinning 해제
     read_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
     file_size -= read_bytes;
     buffer_addr += read_bytes;
@@ -430,17 +439,18 @@ write (int fd, const void *buffer, unsigned size, void *esp)
     check_valid_addr (buffer + i); // 주소 유효성 검증
   }
 
+  // 접근하는 모든 주소에 대응되는 page와 매핑된 frame에 대하여 반복
   while (file_size > 0)
   {
-    page = page_find (pg_round_down (buffer_addr));
+    page = page_find (pg_round_down (buffer_addr)); // page 단위로 주소 내림
 
     if (page != NULL)
     {
-      if(page->is_load == false)
+      if(page->is_load == false) // page가 load되지 않은 경우
       { 
-        if (!fault_handle (page))
+        if (!fault_handle (page)) // fault 처리 (page를 memory에 load)
         { 
-          exit (-1);
+          exit (-1); // 실패 시 종료
         }
       }
     }
@@ -450,21 +460,22 @@ write (int fd, const void *buffer, unsigned size, void *esp)
       uint32_t max = 0x800000;
       uint32_t stack_top_addr = base - max;
 
+      // 스택 포인터로부터 일정 범위 내에 있으며, 스택 크기가 최대 한도 내인 경우
       if ((buffer_addr >= (esp - 32)) && ((uint32_t)buffer_addr >= stack_top_addr))
       {
-        if (!stack_growth (buffer_addr))
+        if (!stack_growth (buffer_addr)) // 스택 확장
         {
-          exit (-1);
+          exit (-1); // 실패 시 종료
         }
       }
       else
       {
-        exit (-1);
+        exit (-1); // 종료
       }
     } 
 
-    frame = frame_find (pg_round_down (buffer_addr));
-    frame->pinning = true;
+    frame = frame_find (pg_round_down (buffer_addr)); // page 단위로 주소 내림하여 frame 탐색
+    frame->pinning = true; // pinning 설정
     write_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
     file_size -= write_bytes;
     buffer_addr += write_bytes;   
@@ -493,10 +504,11 @@ write (int fd, const void *buffer, unsigned size, void *esp)
   file_size = size;
   buffer_addr = buffer;
 
+  // 접근하는 모든 주소에 대응되는 page와 매핑된 frame에 대하여 반복
   while (file_size > 0)
   {
-    frame = frame_find (pg_round_down (buffer_addr));
-    frame->pinning = false;
+    frame = frame_find (pg_round_down (buffer_addr)); // page 단위로 주소 내림하여 frame 탐색
+    frame->pinning = false; // pinning 해제
     write_bytes = (file_size > PGSIZE - pg_ofs (buffer_addr)) ? PGSIZE - pg_ofs (buffer_addr) : file_size;
     file_size -= write_bytes;
     buffer_addr += write_bytes;
@@ -569,58 +581,59 @@ mmap (int fd, void *addr)
   size_t page_read_bytes;
   size_t page_zero_bytes;
 
-  if (is_kernel_vaddr (addr))
+  if (is_kernel_vaddr (addr)) // 커널 가상 주소인 경우
   {
-    exit (-1);
+    exit (-1); // 종료
   }
+  // 유효하지 않은 주소인 경우 (NULL이거나, page의 경계에 맞지 않는 경우)
   if ((addr == NULL) || (pg_ofs (addr) != 0) || ((int) addr % PGSIZE != 0))
   {
-    return -1;
+    return -1; // -1 반환
   }
 
-  mmap_file = (struct mmap_file *) malloc (sizeof (struct mmap_file));
+  mmap_file = (struct mmap_file *) malloc (sizeof (struct mmap_file)); // mmap_file 구조체 할당
   if (mmap_file == NULL)
   {
     return -1;
   }
-  memset (mmap_file, 0, sizeof (struct mmap_file));
+  memset (mmap_file, 0, sizeof (struct mmap_file)); // 메모리 초기화
 
-  lock_acquire (&file_lock);
-  f = file_reopen (thread_current ()->fd_table[fd]);
-  file_size = file_length (f);
-  lock_release (&file_lock);
+  lock_acquire (&file_lock); // lock 획득
+  f = file_reopen (thread_current ()->fd_table[fd]); // file 열기
+  file_size = file_length (f); // file 길이
+  lock_release (&file_lock); // lock 해제
   if (file_size == 0)
   {
     return -1;
   }
 
-  list_init (&mmap_file->page_list);
+  list_init (&mmap_file->page_list); // mmap_file의 page 목록 초기화
 
-  while (file_size > 0)
+  while (file_size > 0) // file과 매핑된 모든 page에 대해 반복
   {
-    if (page_find (addr))
+    if (page_find (addr)) // page 탐색
     {
       return -1;
     }
 
-    page_read_bytes = file_size < PGSIZE ? file_size : PGSIZE;
-    page_zero_bytes = PGSIZE - page_read_bytes;
+    page_read_bytes = file_size < PGSIZE ? file_size : PGSIZE; // 읽은 bytes
+    page_zero_bytes = PGSIZE - page_read_bytes; // 나머지 bytes
 
-    page = page_allocate (FILE, addr, true, false, offset, page_read_bytes, page_zero_bytes, f);
+    page = page_allocate (FILE, addr, true, false, offset, page_read_bytes, page_zero_bytes, f); // page 할당
     if (page == NULL)
     {
       return false;
     }
-    list_push_back (&mmap_file->page_list, &page->mmap_elem);
+    list_push_back (&mmap_file->page_list, &page->mmap_elem); // page 삽입
     
     addr += PGSIZE;
     offset += PGSIZE;
     file_size -= PGSIZE;
   }
 
-  mmap_file->mapid = thread_current ()->mmap_max++;
-  list_push_back (&thread_current ()->mmap_file_list, &mmap_file->elem);
-  mmap_file->file = f;
+  mmap_file->mapid = thread_current ()->mmap_max++; // 매핑 ID 설정
+  list_push_back (&thread_current ()->mmap_file_list, &mmap_file->elem); // mmap_file 삽입
+  mmap_file->file = f; // file 설정
 
   return mmap_file->mapid;
 }
@@ -633,6 +646,7 @@ munmap (mapid_t mapping)
   struct list_elem *e;
   void *addr;
 
+  // 매핑된 file 탐색
   for (e = list_begin (&thread_current ()->mmap_file_list); e != list_end (&thread_current ()->mmap_file_list); e = list_next (e))
   {
     mmap_file = list_entry (e, struct mmap_file, elem);
@@ -647,23 +661,24 @@ munmap (mapid_t mapping)
     return;
   }
 
+  // file과 매핑된 모든 page에 대해 반복
   for (e = list_begin (&mmap_file->page_list); e != list_end (&mmap_file->page_list);)
   {
     page = list_entry (e, struct page, mmap_elem);
     if ((page->is_load == true) && (pagedir_is_dirty (thread_current ()->pagedir, page->addr)))
     {
-      lock_acquire (&file_lock);
-      file_write_at (page->file, page->addr, page->read_byte, page->offset);
-      lock_release (&file_lock);
+      lock_acquire (&file_lock); // lock 획득
+      file_write_at (page->file, page->addr, page->read_byte, page->offset); // write-back
+      lock_release (&file_lock); // lock 해제
       addr = pagedir_get_page (thread_current ()->pagedir, page->addr);
-      frame_deallocate (addr);
+      frame_deallocate (addr); // frame 할당 해제
     }
     page->is_load = false;
     e = list_remove (e);
-    page_deallocate (page);
+    page_deallocate (page); // page 할당 해제
   }
 
   list_remove (&mmap_file->elem);
-  free (mmap_file);
+  free (mmap_file); // mmap_file 구조체 할당 해제
 }
 // end

@@ -168,13 +168,13 @@ process_exit (void)
   file_close (cur->current_file);
   // end
 
-  // pintos 3
+  // Supplemental Page Table & File Memory Mapping & On Process Termination - pintos 3
   for (i = 0; i <= cur->mmap_max; i++)
   { 
-    munmap (i);
+    munmap (i); // memory mapped file 매핑 해제
   }
-  palloc_free_page (cur->fd_table);
-  vm_destroy (&cur->vm);
+  palloc_free_page (cur->fd_table); // fd_table 할당 해제
+  vm_destroy (&cur->vm); // vm(supplemental page table) 제거
   // end
 
   /* Destroy the current process's page directory and switch back
@@ -501,16 +501,17 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       //     return false; 
       //   }
 
+      // page 할당
       struct page *page = page_allocate (BINARY, upage, writable, false, ofs, page_read_bytes, page_zero_bytes, file);
       if (page == NULL)
         return false;
-      // end
-      page_insert(&thread_current()->vm, page);
+
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       ofs += page_read_bytes;
       upage += PGSIZE;
+      // end
     }
   return true;
 }
@@ -527,20 +528,21 @@ setup_stack (void **esp)
   struct frame *frame;
   
   // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  frame = frame_allocate (PAL_USER | PAL_ZERO);
+  frame = frame_allocate (PAL_USER | PAL_ZERO); // frame 할당
 
-  if (frame->page_addr != NULL) 
+  if (frame->page_addr != NULL)
     {
+      // page-frame 매핑
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, frame->page_addr, true);
-      if (success)
+      if (success) // 매핑을 성공한 경우
       {
+        // page 할당
         frame->page = page_allocate (ANONYMOUS, ((uint8_t *) PHYS_BASE) - PGSIZE, true, true, 0, 0, 0, NULL);
         if (frame->page == NULL)
         {
           success = false;
           return success;
         }
-        page_insert (&thread_current()->vm, frame->page);
         *esp = PHYS_BASE;
       }
       else
@@ -548,6 +550,7 @@ setup_stack (void **esp)
         frame_deallocate (frame->page_addr);
       }
     }
+  // end
 
   return success;
 }
@@ -629,7 +632,7 @@ pass_argument (char *file_name, void **esp)
   **(uint32_t **)esp = index; // argc
 
   *esp -= 4;
-  **(uint32_t **)esp = 0; // return address]
+  **(uint32_t **)esp = 0; // return address
 
   palloc_free_page (argv);
   palloc_free_page (argv_addr);
@@ -667,15 +670,16 @@ fault_handle (struct page *page)
   bool success = false;
   struct frame *frame;
   
-  frame = frame_allocate (PAL_USER);
-  frame->page = page;
+  frame = frame_allocate (PAL_USER); // frame 할당
+  frame->page = page; // page-frame 매핑
 
   if (page->type == BINARY || page->type == FILE)
   {
-    success = load_file (frame->page_addr, page);
+    success = load_file (frame->page_addr, page); // file load
   }
   else if (page->type == ANONYMOUS)
   {
+    // swap in (swap 영역에서 가져오기)
     success = swap_in (page->swap_slot, frame->page_addr);
   }
   else
@@ -683,17 +687,19 @@ fault_handle (struct page *page)
     return success;
   }
 
+  // 실패 시
   if (success == false)
   {
-    frame_deallocate (frame->page_addr);
+    frame_deallocate (frame->page_addr); // frame 할당 해제
     return false;
   }
+  // page-frame 매핑 실패 시
   if (!install_page (page->addr, frame->page_addr, page->writable))
   {
-    frame_deallocate (frame->page_addr);
+    frame_deallocate (frame->page_addr); // frame 할당 해제
     return false;
   }
-  page->is_load = true;
+  page->is_load = true; // load 상태 표시
 
   return success;
 }
@@ -705,20 +711,21 @@ stack_growth (void *addr)
 {
   bool success = false;
   struct frame *frame;
-  void *vaddr = pg_round_down (addr);
+  void *vaddr = pg_round_down (addr); // page 단위로 주소 내림
 
-  frame = frame_allocate (PAL_USER | PAL_ZERO);
+  frame = frame_allocate (PAL_USER | PAL_ZERO); // frame 할당
   if (frame != NULL)
   {
-    success = install_page (vaddr, frame->page_addr, true);
-    if (success == false)
+    success = install_page (vaddr, frame->page_addr, true); // page-frame 매핑
+    if (success == false) // 실패 시
     {
-      frame_deallocate (frame->page_addr);
+      frame_deallocate (frame->page_addr); // frame 할당 해제
       return success;
     }
     else
     {
-      frame->page = page_allocate (ANONYMOUS, vaddr, true, true, 0, 0, 0, NULL);
+      // page 할당
+      frame->page = page_allocate (ANONYMOUS, vaddr, true, true, 0, 0, 0, NULL); // page 할당
       if (frame->page == NULL)
       {
         success = false;

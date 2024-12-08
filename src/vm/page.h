@@ -10,6 +10,7 @@
 #include "userprog/syscall.h"
 #include "vm/frame.h"
 
+// Supplemental Page Table - pintos 3
 enum page_type
 {
     BINARY = 0,
@@ -19,28 +20,31 @@ enum page_type
 
 struct page
 {
-    enum page_type type;
-    void *addr;
-    struct frame *frame;
-    bool writable;
-    bool is_load; // physical memory의 load 여부 flag 
-    uint32_t offset;
-    uint32_t read_byte;
-    uint32_t zero_byte;
-    struct file *file;
-    struct hash_elem elem;
-    struct list_elem mmap_elem;
-    size_t swap_slot;
+    enum page_type type;         // Page Type
+    void *addr;                  // Page Address
+    struct frame *frame;         // Frame
+    bool writable;               // Writeable or not
+    bool is_load;                // Load or not to Physical Memory
+    uint32_t offset;             // Offset
+    uint32_t read_byte;          // Read bytes
+    uint32_t zero_byte;          // Zero bytes
+    struct file *file;           // File
+    struct hash_elem elem;       // Page Table List element
+    struct list_elem mmap_elem;  // Memory Mapped File List element
+    size_t swap_slot;            // Swap Slot
 };
+// end
 
+// File Memory Mapping - pintos 3
 struct mmap_file
 {
-    mapid_t mapid;
-    void *addr;
-    struct file *file;
-    struct list page_list;
-    struct list_elem elem;
+    mapid_t mapid;               // Mapping ID
+    void *addr;                  // Address
+    struct file *file;           // File
+    struct list page_list;       // Page List
+    struct list_elem elem;       // Memory Mapped File List element
 };
+// end
 
 void vm_init (struct hash *vm);
 void vm_destroy (struct hash *vm);

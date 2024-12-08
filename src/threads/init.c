@@ -133,12 +133,12 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
-  // Frame Table - pintos 3
 #ifdef VM
+  // Frame Table - pintos 3
   frame_table_init ();
+  // Swap Table - pintos 3
   swap_table_init ();
 #endif
-  // end
 
   printf ("Boot complete.\n");
   
