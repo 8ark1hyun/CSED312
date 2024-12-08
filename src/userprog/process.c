@@ -323,7 +323,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   // Denying Writes to Executables - pintos 2
   t->current_file = file;
-  file_deny_write (file);
+  // file_deny_write (file);
   // end
 
   /* Read program headers. */
