@@ -599,7 +599,10 @@ mmap (int fd, void *addr)
   memset (mmap_file, 0, sizeof (struct mmap_file)); // 메모리 초기화
 
   lock_acquire (&file_lock); // lock 획득
-  f = file_reopen (thread_current ()->fd_table[fd]); // file 열기
+  if ((fd > 1) && (fd < thread_current ()->fd_max))
+  {
+    f = file_reopen (thread_current ()->fd_table[fd]); // file 열기
+  }
   file_size = file_length (f); // file 길이
   lock_release (&file_lock); // lock 해제
   if (file_size == 0)
